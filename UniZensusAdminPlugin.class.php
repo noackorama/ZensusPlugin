@@ -6,7 +6,7 @@
 *
 *
 * @author        André Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
-* @version        $Id: UniZensusAdminPlugin.class.php,v 1.6 2013/04/04 15:17:49 anoack Exp $
+* @version        $Id: UniZensusAdminPlugin.class.php,v 1.3 2011/09/13 10:23:41 anoack Exp $
 */
 // +---------------------------------------------------------------------------+
 // This file is part of Stud.IP
@@ -43,16 +43,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         parent::__construct();
 
         if ($this->hasPermission()) {
-            $navigation = new Navigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
+            $navigation = new AutoNavigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
             if (basename($_SERVER['PHP_SELF']) == 'plugins.php') {
-
-                //Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
-                $token_navigation = new Navigation(_("Export Token"), PluginEngine::getLink($this, array(), 'token'));
-                $subnav = clone $navigation;
-                $subnav->addSubNavigation('show', clone $navigation);
-                $subnav->addSubNavigation('token', $token_navigation);
-                $navigation->addSubNavigation('sub', $subnav);
                 Navigation::addItem('/UniZensusAdmin', $navigation);
+                Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
             } else {
                 Navigation::addItem('/start/UniZensusAdmin', clone $navigation);
             }
@@ -90,55 +84,18 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         return $GLOBALS['perm']->have_perm('admin');
     }
 
-
-    function token_action()
-    {
-        if (!$this->hasPermission()) {
-            throw new AccessDeniedException("Nur Root und ausgewählte Admins dürfen dieses Plugin sehen.");
-        }
-        Navigation::activateItem('/UniZensusAdmin/sub/token');
-        if (Request::submitted('generate_token')) {
-            UserConfig::get($GLOBALS['user']->id)->store('UNIZENSUSPLUGIN_AUTH_TOKEN', md5(uniqid('ZensusToken',1)));
-        }
-        ob_start();
-        echo '<p>';
-        echo _("Für den Import der Veranstaltungsdaten in das Zensus System müssen sie dort ein Authentifizierungstoken hinterlegen.");
-        echo '<br>' . _("Hier können Sie ein Token für Ihre aktuelle Nutzerkennung generieren.");
-        echo '</p>';
-        echo '<div>';
-        echo '<span style="font-weight:bold; padding-right:10px;">' . _("Nutzerkennung:") . '</span>';
-        echo $GLOBALS['auth']->auth['uname'] . ' (' . $GLOBALS['auth']->auth['perm'] . ')';
-        echo '</div>';
-        echo '<div>';
-        echo '<span style="font-weight:bold; padding-right:10px;">' . _("Token:") . '</span>';
-        echo htmlReady(UserConfig::get($GLOBALS['user']->id)->UNIZENSUSPLUGIN_AUTH_TOKEN);
-        echo '</div>';
-        echo '<div>';
-        echo '<form method="post" action="?">';
-        echo '<button class="button" type="submit" name="generate_token">' . _("neues Token erzeugen") . '</button>';
-        echo '</form>';
-        echo '</div>';
-        PageLayout::setTitle($this->getDisplayname());
-        $layout = $GLOBALS['template_factory']->open('layouts/base_without_infobox');
-        $layout->content_for_layout = ob_get_clean();
-        echo $layout->render();
-    }
-
     function show_action() {
 
         if (!$this->hasPermission()) {
             throw new AccessDeniedException("Nur Root und ausgewählte Admins dürfen dieses Plugin sehen.");
         }
-        Navigation::activateItem('/UniZensusAdmin/sub/show');
         ob_start();
         $cols = array();
         $cols[] = array(1,'','');
         $cols[] = array(30,_("Veranstaltung"),'Name');
         $cols[] = array(15,_("Dozenten"),'dozenten');
-        $cols[] = array(5,_("&sum; Stud.IP"),'teilnehmer_anzahl_aktuell');
         $cols[] = array(5,_("Zensus Status"),'zensus_status');
-        $cols[] = array(5,_("&sum; Zensus"),'zensus_numvotes');
-        $cols[] = array(5,_("Plugin aktiv"),'plugin_activated');
+        $cols[] = array(5,_("Plugin eingeschaltet"),'plugin_activated');
         $cols[] = array(10,_("Startzeit manuell"),'begin_evaluation');
         $cols[] = array(10,_("Endzeit manuell"),'end_evaluation');
         $cols[] = array(10,_("Startzeit automatisch"),'time_frame_begin');
@@ -350,7 +307,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $data[$seminar_id]['link'] = "<a href=\"".PluginEngine::GetLink($plugin,array('cid' => $seminar_id)) . "\">"
                     . htmlReady($plugin->course_status['status'])."</a>";
                     $data[$seminar_id]['zensus_status'] = $plugin->course_status['status'];
-                    $data[$seminar_id]['zensus_numvotes'] = $plugin->course_status['numvotes'];
                     $data[$seminar_id]['time_frame_begin'] = $plugin->course_status['time_frame']['begin'];
                     $data[$seminar_id]['time_frame_end'] = $plugin->course_status['time_frame']['end'];
                     $data[$seminar_id]['plugin_activated'] = true;
@@ -385,8 +341,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
                     <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
                     <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
                     ",
                     $cssSw->getClass(),
                     htmlready($semdata['Name']),
@@ -397,11 +351,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $cssSw->getClass(),
                     htmlReady($semdata['dozenten']),
                     $cssSw->getClass(),
-                    htmlReady($semdata['teilnehmer_anzahl_aktuell']),
-                    $cssSw->getClass(),
                     $semdata['link'],
-                    $cssSw->getClass(),
-                    htmlReady($semdata['zensus_numvotes']),
                     $cssSw->getClass(),
                     ($semdata['plugin_activated'] ? 'ja' : 'nein') ,
                     $cssSw->getClass(),
@@ -504,10 +454,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     break;
                 }
             }
-            $query2 = "SELECT COUNT(*) FROM seminar_user WHERE seminar_id='$seminar_id' AND status IN ('autor')";
-            $db2->query($query2);
-            $db2->next_record();
-            $ret[$seminar_id]['teilnehmer_anzahl_aktuell'] = $db2->f(0);
             $query2 = "SELECT datafield_id,content FROM datafields_entries WHERE range_id='$seminar_id' AND datafield_id IN('$datafield1','$datafield2')";
             $db2->query($query2);
             while($db2->next_record()){
@@ -573,13 +519,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $xml_names_lecture['resultstore'] = array($this, 'getExportData');
         */
 
-        $authcode = Request::option('authcode');
-        if ($authcode) {
-            $auth_uid = DbManager::get()->query("SELECT user_id FROM user_config WHERE field='UNIZENSUSPLUGIN_AUTH_TOKEN' AND value='$authcode'")->fetchColumn();
-            if (!$auth_uid) $export_error = 'wrong authcode';
-        } else {
-            $export_error = 'missing authcode';
-        }
         $ex_tstamp = Request::get('ex_tstamp');
         list($y,$M,$d,$h,$m) = explode('-', $ex_tstamp);
         $tstamp = mktime($h,$m,0,$M,$d,(int)$y);
@@ -605,11 +544,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         while(ob_get_level()) ob_end_clean();
         header("Content-type: text/xml; charset=utf-8");
         if ($export_error) {
-            header('HTTP/1.1 403 Forbidden');
             echo '<?xml version="1.0"?>' . chr(10);
             echo zensus_xmltag('studip_export_error_msg', strip_tags($export_error));
             exit();
         }
-        zensus_export_range($range_id, $ex_sem, 'direct',$auth_uid);
+        zensus_export_range($range_id, $ex_sem, 'direct');
     }
 }

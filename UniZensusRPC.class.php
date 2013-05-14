@@ -1,37 +1,30 @@
 <?php
 require_once "vendor/phpxmlrpc/xmlrpc.inc";
-require_once "lib/datei.inc.php";
 
 class UniZensusRPC {
-
+	
 	var $timeout = 2;
 	var $cache = 240;
-
+	
 	/**
-	 *
+	 * 
 	 */
 	function UniZensusRPC(){
 		$this->client = new xmlrpc_client($GLOBALS['UNIZENSUSPLUGIN_XMLRPC_ENDPOINT']);
 	}
-
+	
 	function getCourseStatus($course_id, $user_id = null){
 		$id = md5($course_id . $user_id);
 		if (!is_null( ($cached_result = $this->getResultFromCache($id)) )){
 			return $cached_result;
 		}
 		$result = array();
-		$tstamp = date('Y-m-d-H-i');
-		$hash = hash_hmac('md5', $course_id.$tstamp.$user_id, $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2']);
 		if (is_null($user_id)){
-			$msg = new xmlrpcmsg("info.course_status_v3", array(new xmlrpcval($course_id, "string"),
-			                                        new xmlrpcval('Stud.IP', "string"),
-			                                        new xmlrpcval($tstamp, "string"),
-			                                        new xmlrpcval($hash, "string")));
+			$msg = new xmlrpcmsg("info.course_status", array(new xmlrpcval($course_id, "string"),
+													new xmlrpcval('Stud.IP', 'string')));
 		} else {
-			$msg = new xmlrpcmsg("info.course_status_v3", array(new xmlrpcval($course_id, "string"),
-			                                        new xmlrpcval('Stud.IP', "string"),
-			                                        new xmlrpcval($tstamp, "string"),
-			                                        new xmlrpcval($hash, "string"),
+			$msg = new xmlrpcmsg("info.course_status", array(new xmlrpcval($course_id, "string"),
+													new xmlrpcval('Stud.IP', 'string'),
 													new xmlrpcval($user_id, 'string')));
 		}
 		$response = $this->client->send($msg, $this->timeout);
@@ -53,7 +46,7 @@ class UniZensusRPC {
 		$this->putResultToCache($id, $result);
 		return $result;
 	}
-
+	
 	function getEvaluationURL($target, $course_id, $user_id){
 		$tstamp = date('Y-m-d-H-i', time() + 120);
 		$hash = md5($course_id . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $tstamp . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2'] . $user_id . $target);
@@ -61,7 +54,7 @@ class UniZensusRPC {
 		$url .= "&sp=$tstamp&sp=$hash&sp=$user_id&sp=$target&sp=".$course_id."&sp=$course_id";
 		return $url;
 	}
-
+	
 	function putResultToCache($id, $result){
 		if ($this->cache){
 			$db = new DB_Seminar();
@@ -70,7 +63,7 @@ class UniZensusRPC {
 			return $db->affected_rows();
 		}
 	}
-
+	
 	function getResultFromCache($id, $override = false){
 		$result = null;
 		if ($this->cache){
@@ -80,26 +73,6 @@ class UniZensusRPC {
 				$result = unserialize($db->f('data'));
 			}
 		}
-		return $result;
-	}
-
-	function getpdfresults($course_id, $user_id)
-	{
-	    $id = md5('pdfresults' . $course_id . $user_id);
-		if (!is_null( ($cached_result = $this->getResultFromCache($id)) )){
-			return $cached_result;
-		}
-		$result = null;
-	    $url = $this->getEvaluationURL('pdfresults', $course_id, $user_id);
-	    $check = parse_link($url);
-	    if ($check['response_code'] == 302) {
-	        $check = parse_link($check['Location']);
-	    }
-	    if ($check['response_code'] == 200) {
-	        $pdf = file_get_contents($url);
-	        $result = strlen($pdf);
-	        $this->putResultToCache($id, $result);
-	    }
 		return $result;
 	}
 }
