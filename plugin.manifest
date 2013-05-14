@@ -1,0 +1,7 @@
+pluginclassname=UniZensusPlugin
+pluginclassname=UniZensusAdminPlugin
+pluginclassname=UniZensusNagScreen
+pluginname=UniZensusPlugin
+origin=data-quest
+version=1.2
+StudipMinVersion=2.0
