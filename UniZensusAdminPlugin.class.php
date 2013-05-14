@@ -58,6 +58,29 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
             $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
             $this->zensuspluginid = $info['id'];
+            if (!$GLOBALS['perm']->have_perm('root')) {
+                if (!in_array(basename($_SERVER['PHP_SELF']), array('plugins.php', 'index.php', 'details.php','logout.php'))) {
+                        header("Location: " . UrlHelper::getUrl('index.php'));
+                        page_close();
+                        die();
+                }
+                PluginEngine::getPlugins('AdministrationPlugin');
+                PageLayout::addHeadElement('style', array('type'=>'text/css'), '#search_sem_quick_search_1 {visibility: hidden;}
+                                                                                input[name="search_sem_do_search"] {visibility: hidden;}');
+                Request::set('cid', null);
+                closeObject();
+                foreach(Navigation::getItem('/') as $i => $n) {
+                    if (!in_array($i, array('UniZensusAdmin', 'start', 'links', 'footer','login'))) {
+                        Navigation::removeItem('/' . $i);
+                    }
+                }
+                Navigation::removeItem('/links/settings');
+                foreach(Navigation::getItem('/start') as $i => $n) {
+                    if (!in_array($i, array('UniZensusAdmin'))) {
+                        Navigation::removeItem('/start/' . $i);
+                    }
+                }
+            }
         }
 
     }
@@ -67,27 +90,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
     }
 
     private function hasPermission() {
-        //Uni OL
-        /*$user = $this->getUser();
-        $permission = $user->getPermission();
-        if (!$permission->hasTeacherPermission()) {
-        return false;
-        }
-        if ($this->user_is_eval_admin === null) {
-        # Prüfen, ob der User die Rolle 'eval_admin' hat:
-        $eval_admin = false;
-        foreach ( $user->getAssignedRoles() as $role )
-        {
-        if ( $role->rolename === 'eval_admin' )
-        {
-        $eval_admin = true;
-        }
-        }
-        $this->user_is_eval_admin = $eval_admin;
-        }
-        return $permission->hasRootPermission() || $this->user_is_eval_admin;
-        */
-        return $GLOBALS['perm']->have_perm('admin');
+       return $GLOBALS['perm']->have_perm('root') || RolePersistence::isAssignedRole($GLOBALS['user']->id, 'Lehrevaluation');
     }
 
 
@@ -282,8 +285,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             <hr>
             <?
             $data = $this->getSeminareData($sem_condition);
-            $cssSw = new CssClassSwitcher();
-
             if (count($data)) {
                 if($form->isClicked('switch')){
                     foreach($data as $seminar_id => $semdata) {
@@ -317,10 +318,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo chr(10).'<div style="margin:10px;font-size:10pt;">';
                 echo $form->getFormButton('switch');
                 echo chr(10). '</div>';
-                print ("<table width=\"99%\" align=\"center\" border=0 cellspacing=2 cellpadding=2>");
-                print ("<tr style=\"font-size:80%\">");
+                echo "<table class=\"default\">";
+                echo "<tr>";
                 foreach($cols as $col){
-                    echo "<th width=\"{$col[0]}%\">";
+                    echo "<th width=\"{$col[0]}%\" style=\"font-size:80%;text-align:center\">";
                     if($col[1]){
                         echo '<a class="tree" href="';
                         echo PluginEngine::getLink($this,array('sortby' => $col[2]));
@@ -333,9 +334,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     echo "</th>";
                 }
                 echo "</tr>";
-            } elseif ($_SESSION['zensus_admin']['institut_id']) {
-                print ("<table width=\"99%\" border=0 cellspacing=2 cellpadding=2>");
-                parse_msg ("info§"._("Im gew&auml;hlten Bereich existieren keine Veranstaltungen")."§", "§", "steel1",2, FALSE);
             }
             foreach($data as $seminar_id => $semdata) {
                 if($semdata['activated_by_sem'] == 'on' || ($semdata['activated_by_sem'] != 'off' && $semdata['activated_by_default'] == 'on')){
@@ -368,49 +366,43 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             if($_SESSION['zensus_admin']['sortby']['field'] && count($data) && count($data) == count($sorter)){
                 array_multisort($sorter, ($_SESSION['zensus_admin']['sortby']['direction'] ? SORT_ASC : SORT_DESC), $data);
             }
-            $semlink = $GLOBALS['perm']->have_studip_perm('admin', $_SESSION['zensus_admin']['institut_id']) ? 'seminar_main.php?auswahl=' : 'details.php?sem_id=';
+            $semlink = $GLOBALS['perm']->have_perm('root') ? 'seminar_main.php?auswahl=' : 'details.php?sem_id=';
             foreach($data as $seminar_id => $semdata) {
-                $cssSw->switchClass();
-                echo "<tr>\n";
-                echo '<td class="'.$cssSw->getClass().'" align="center"><input type="checkbox" name="sem_choosen['.$seminar_id.']" value="1" '.($semdata['choosen'] ? 'checked':'').'></td>';
-                printf ("<td class=\"%s\">
+                $sem = new Seminar($seminar_id);
+                $dates = $sem->getDatesExport(array(
+                    'semester_id' => $_SESSION['_default_sem'],
+                    'show_room'   => false
+                ));
+                echo "<tr class=\"" . TextHelper::cycle('hover_odd', 'hover_even') . "\">\n";
+                echo '<td align="center"><input type="checkbox" name="sem_choosen['.$seminar_id.']" value="1" '.($semdata['choosen'] ? 'checked':'').'></td>';
+                printf ("<td>
                     <a title=\"%s\" href=\"%s\">
-                    <font size=\"-1\">%s%s%s</font>
+                    %s%s%s
                     </a></td>
-                    <td class=\"%s\" align=\"center\">
-                    <font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                    <td align=\"center\">
+                    %s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
                     ",
-                    $cssSw->getClass(),
-                    htmlready($semdata['Name']),
+                    htmlready($dates),
                     UrlHelper::getLink($semlink.$seminar_id),
                     htmlready(substr($semdata['Name'], 0, 60)),
                     (strlen($semdata['Name'])>60) ? "..." : "",
                     !$semdata['visible'] ? ' ' . _("(versteckt)") : '',
-                    $cssSw->getClass(),
                     htmlReady($semdata['dozenten']),
-                    $cssSw->getClass(),
                     htmlReady($semdata['teilnehmer_anzahl_aktuell']),
-                    $cssSw->getClass(),
                     $semdata['link'],
-                    $cssSw->getClass(),
                     htmlReady($semdata['zensus_numvotes']),
-                    $cssSw->getClass(),
                     ($semdata['plugin_activated'] ? 'ja' : 'nein') ,
-                    $cssSw->getClass(),
                     $semdata['begin_evaluation'] ? date("d.m.Y", $semdata['begin_evaluation']) : '-',
-                    $cssSw->getClass(),
                     $semdata['end_evaluation'] ? date("d.m.Y", $semdata['end_evaluation']) : '-',
-                    $cssSw->getClass(),
                     ($semdata['time_frame_begin'] ? date("d.m.Y", $semdata['time_frame_begin']) : '-'),
-                    $cssSw->getClass(),
                     ($semdata['time_frame_end'] ? date("d.m.Y", $semdata['time_frame_end']) : '-')
                     );
                 echo "</tr>";
@@ -418,6 +410,9 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             echo "</table>";
             echo $form->getFormEnd();
             echo '</div>';
+            if ($_SESSION['zensus_admin']['institut_id'] && !count($data)) {
+                echo MessageBox::info(_("Im gewählten Bereich existieren keine Veranstaltungen"));
+            }
         } else {
             echo MessageBox::info(_("Sie wurden noch keinen Einrichtungen zugeordnet."));
         }
