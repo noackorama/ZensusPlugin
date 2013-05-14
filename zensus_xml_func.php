@@ -108,11 +108,10 @@ function zensus_xmlfooter()
  */
 function zensus_xmlescape($string, $utf8encode = true)
 {
-    $string = preg_replace('/[\x00-\x08\x0b\x0c\x0e-\x1f]/', '', $string);
     if ($utf8encode) {
-        return htmlspecialchars(studip_utf8encode($string), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars(studip_utf8encode($string), ENT_QUOTES, 'UTF-8', false);
     } else {
-        return htmlspecialchars(html_entity_decode($string, ENT_QUOTES, 'cp1252'), ENT_QUOTES, 'cp1252', false);
+        return htmlspecialchars($string, ENT_QUOTES, 'cp1252', false);
     }
 }
 
@@ -312,10 +311,7 @@ function zensus_export_sem($inst_id, $ex_sem_id = "all", $o_mode = 'direct')
     $db2=new DB_Seminar;
     $db3=new DB_Seminar;
 
-    $order = "seminare.status, seminare.Name";
-    $group = "FIRSTGROUP";
-    $group_tab_zelle = "status";
-    $do_group = true;
+    $order = " seminare.Name";
 
     if (isset($ex_sem) && $semester = Semester::find($ex_sem)){
         $addquery = " AND seminare.start_time <=".$semester->beginn." AND (".$semester->beginn." <= (seminare.start_time + seminare.duration_time) OR seminare.duration_time = -1) ";

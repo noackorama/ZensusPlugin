@@ -86,24 +86,22 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 	}
 
 	function isVisible(){
-		if ($this->isActivated($this->getId())) {
-			$this->getCourseStatus();
-			if (
-				($this->course_status['status']
-				&& $this->course_status['status'] != 'not found'
-				&& ( (($this->course_status['preview'] || $this->course_status['questionnaire']) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
-					)
-				&& (!isset($this->course_status['time_frame'])
-					|| ($this->course_status['time_frame']['begin'] < time()
-						&& $this->course_status['time_frame']['end'] > time()
-						)
+		$this->getCourseStatus();
+		if (
+			($this->course_status['status']
+			&& $this->course_status['status'] != 'not found'
+			&& ( (($this->course_status['preview'] || $this->course_status['questionnaire']) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
+			    )
+			&& (!isset($this->course_status['time_frame'])
+				|| ($this->course_status['time_frame']['begin'] < time()
+					&& $this->course_status['time_frame']['end'] > time()
 					)
 				)
-				|| $GLOBALS['perm']->have_perm('admin')
-				|| $GLOBALS['perm']->have_studip_perm('dozent', $this->getId())
-				) return true;
-			else return false;
-		}
+			)
+			|| $GLOBALS['perm']->have_perm('admin')
+			|| $GLOBALS['perm']->have_studip_perm('dozent', $this->getId())
+			) return true;
+		else return false;
 	}
 
 	function hasChanged($lastviewed){

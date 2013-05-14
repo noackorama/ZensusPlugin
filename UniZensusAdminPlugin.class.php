@@ -6,7 +6,7 @@
 *
 *
 * @author        André Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
-* @version        $Id: UniZensusAdminPlugin.class.php,v 1.3 2011/09/13 10:23:41 anoack Exp $
+* @version        $Id: UniZensusAdminPlugin.class.php,v 1.2 2011/06/10 14:56:30 anoack Exp $
 */
 // +---------------------------------------------------------------------------+
 // This file is part of Stud.IP
@@ -62,26 +62,13 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
     private function hasPermission() {
         //Uni OL
-        /*$user = $this->getUser();
-        $permission = $user->getPermission();
-        if (!$permission->hasTeacherPermission()) {
-        return false;
-        }
         if ($this->user_is_eval_admin === null) {
-        # Prüfen, ob der User die Rolle 'eval_admin' hat:
-        $eval_admin = false;
-        foreach ( $user->getAssignedRoles() as $role )
-        {
-        if ( $role->rolename === 'eval_admin' )
-        {
-        $eval_admin = true;
+            $this->user_is_eval_admin = RolePersistence::isAssignedRole($GLOBALS['user']->id, 'eval_admin');
         }
-        }
-        $this->user_is_eval_admin = $eval_admin;
-        }
-        return $permission->hasRootPermission() || $this->user_is_eval_admin;
-        */
+        return $GLOBALS['perm']->have_perm('root') || $this->user_is_eval_admin;
+        /*
         return $GLOBALS['perm']->have_perm('admin');
+        */
     }
 
     function show_action() {
@@ -386,6 +373,15 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         global $perm, $user,$_default_sem;
         $db = new DB_Seminar();
         $db2 = new DB_Seminar();
+        /*UOL*/
+        if($this->hasPermission()){
+            $db->query("SELECT COUNT(*) FROM seminare WHERE 1 $seminare_condition");
+            $db->next_record();
+            $_my_inst['all'] = array("name" => _("alle") , "num_sem" => $db->f(0));
+            $db->query("SELECT a.Institut_id,a.Name, 1 AS is_fak, count(seminar_id) AS num_sem FROM Institute a
+            LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE a.Institut_id=fakultaets_id GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
+        }
+        /*
         if($perm->have_perm('root')){
             $db->query("SELECT COUNT(*) FROM seminare WHERE 1 $seminare_condition");
             $db->next_record();
@@ -396,6 +392,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $db->query("SELECT a.Institut_id,b.Name, IF(b.Institut_id=b.fakultaets_id,1,0) AS is_fak,count(seminar_id) AS num_sem FROM user_inst a LEFT JOIN Institute b USING (Institut_id)
                 LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE a.user_id='$user->id' AND a.inst_perms='admin' GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         }
+        */
         while($db->next_record()){
             $_my_inst[$db->f("Institut_id")] = array("name" => $db->f("Name"), "is_fak" => $db->f("is_fak"), "num_sem" => $db->f("num_sem"));
             if ($db->f("is_fak")){
@@ -536,10 +533,11 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         $range_id = Request::option('range_id', 'root');
-        $ex_only_visible = Request::int('ex_only_visible', 0);
+        $ex_only_visible = Request::int('ex_only_visible', 1);
         $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
         $ex_sem_class = Request::intArray('ex_sem_class');
         if (!count($ex_sem_class)) $ex_sem_class[] = 1;
+        $ex_sem_class = array();
         ini_set('memory_limit', '256M');
         while(ob_get_level()) ob_end_clean();
         header("Content-type: text/xml; charset=utf-8");
