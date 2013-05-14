@@ -7,12 +7,6 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 
 	var $is_not_activatable = true;
 
-	public static $datafield_id_teilnehmer = '';
-	public static $datafield_id_auswertung_oeffentlich = '';
-	public static $datafield_id_auswertung_speichern = '';
-	public static $datafield_id_auswertung_studierende = '';
-
-
 	function SQLDateToTimestamp($sqldate){
 		$date_values = explode("-", $sqldate); //YYYY-MM-DD
 		if (checkdate((int)$date_values[1],(int)$date_values[2],(int)$date_values[0])){
@@ -93,21 +87,15 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 
 	function isVisible(){
 		$this->getCourseStatus();
-		if ($this->course_status['status']
-			&& strpos($this->course_status['status'], 'error') === false) {
-		    $additional_data = self::getAdditionalExportData($this->getId());
-		}
 		if (
 			($this->course_status['status']
-			&& strpos($this->course_status['status'], 'error') === false
-			&& ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['pdfdetailfreetexts']
-) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
+			&& $this->course_status['status'] != 'not found'
+			&& ( (($this->course_status['preview'] || $this->course_status['questionnaire']) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
 			    )
 			&& (!isset($this->course_status['time_frame'])
 				|| ($this->course_status['time_frame']['begin'] < time()
 					&& $this->course_status['time_frame']['end'] > time()
 					)
-				|| $additional_data['eval_public_stud']
 				)
 			)
 			|| $GLOBALS['perm']->have_perm('admin')
@@ -203,250 +191,37 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 		return array($begin,$end);
 	}
 
-	public static function getDatafieldValue($datafield_id, $range_id, $sec_range_id = '')
-	{
-	    $db = DBManager::get();
-	    $p = $db->prepare("SELECT content FROM datafields_entries WHERE datafield_id=? AND range_id=? AND sec_range_id=?");
-	    if ($p->execute(array($datafield_id, $range_id, $sec_range_id))) {
-	        return $p->fetchColumn();
-	    }
-	}
-
-	public static function setDatafieldValue($content, $datafield_id, $range_id, $sec_range_id = '')
-	{
-	    $db = DBManager::get();
-	    $p = $db->prepare("REPLACE INTO datafields_entries (content,datafield_id,range_id,sec_range_id) VALUES (?,?,?,?)");
-	    return $p->execute(array($content, $datafield_id, $range_id, $sec_range_id));
-	}
-
-	public static function getAdditionalExportData($seminar_id)
-	{
-	    return array();
-	    $eval_public = $eval_stored =  $eval_public_stud = array();
-	    $ret['eval_participants'] = self::getDatafieldValue(self::$datafield_id_teilnehmer, $seminar_id);
-	    foreach(Seminar::getInstance($seminar_id)->getMembers('dozent') as $dozent) {
-	        $eval_public[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $seminar_id, $dozent['user_id']);
-	        $eval_stored[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_speichern, $seminar_id, $dozent['user_id']);
-            $eval_public_stud[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $seminar_id, $dozent['user_id']);
-	    }
-	    $ret['eval_public'] = min($eval_public);
-	    $ret['eval_stored'] = array_sum($eval_stored) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
-	    $ret['eval_public_stud'] = array_sum($eval_public_stud) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
-	    return $ret;
-	}
-
 	function show($args){
 		if (!$this->isVisible()) return;
 		$this->getCourseAndUserStatus();
 		$pluginrelativepath = $this->getPluginUrl();
-		echo chr(10) . '<div style="padding:10px;background-color:white">';
-		/*Uni OL
-		if ($GLOBALS['perm']->get_studip_perm($this->getId()) == 'dozent') {
-		    $lehrende = Seminar::getInstance($this->getID())->getMembers('dozent');
-    		if (Request::submitted('ok')) {
-    	        self::setDatafieldValue((Request::int('eval_participants') ? Request::int('eval_participants') : ''), self::$datafield_id_teilnehmer, $this->getID());
-    	        self::setDatafieldValue(Request::int('eval_public'), self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id);
-    	        self::setDatafieldValue(Request::int('eval_stored'), self::$datafield_id_auswertung_speichern, $this->getID(), $GLOBALS['user']->id);
-    	        self::setDatafieldValue(Request::int('eval_public_stud'), self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id);
-    	        echo MessageBox::success(_("Die Einstellungen wurden gespeichert."));
-    		}
-		    echo chr(10) . '<form action="?" method="post">';
-		    echo chr(10) . (class_exists('CSRFProtection') ? CSRFProtection::tokenTag() : '') ;
-
-		    echo chr(10) . '<fieldset><legend>'._("Einstellungen").'</legend>';
-		    echo chr(10). '<table cellspacing="2" border="0">';
-		    echo '<tr><td>';
-		    echo '<label style="font-weight:bold" for="eval_participants">' ._("Konkrete Teilnehmeranzahl") . '</label>';
-		    echo '</td><td align="center">';
-		    echo '<input name="eval_participants" id="eval_participants" value="'.self::getDatafieldValue(self::$datafield_id_teilnehmer, $this->getID()).'" type="text" size="2">';
-		    echo '</td><td>';
-		    echo '<div style="font-style:italic; padding-left: 10px;">';
-		    echo sprintf(_("Diese Teilnehmeranzahl wird zur Auswertung der Evaluation herangezogen. Wenn Sie keinen Wert eingeben, wird die Anzahl der Teilnehmer aus Stud.IP benutzt (zur Zeit: %s).")
-		            , count(Seminar::getInstance($this->getId())->getMembers('autor')));
-		    echo '</div>';
-		    echo '</td></tr>';
-
-		    echo '<tr><td colspan="3"><hr></td></tr>';
-
-		    echo '<tr><td>';
-		    echo '<label style="font-weight:bold" for="eval_public_stud">' ._("Ergebnisweiterleitung an Studierende") . '</label>';
-		    if (count($lehrende)) {
-		        echo '<ul style="font-size:smaller">';
-		        foreach($lehrende as $l) {
-		            echo '<li>';
-		            echo htmlReady($l['Nachname'] . ', '. $l['Vorname'][0] . '.');
-		            echo '&nbsp;(' . (self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $l['user_id']) ? 'Ja' : 'Nein') . ')';
-		            echo '</li>';
-		        }
-		        echo '</ul>';
-		    }
-		    echo '</td><td align="center">';
-		    echo '<input name="eval_public_stud" id="eval_public_stud" type="checkbox" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) ? 'checked' : '').' >';
-		    echo '</td><td>';
-		    echo '<div style="font-style:italic; padding-left: 10px;">';
-		    echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-		    , htmlready(Seminar::getInstance($this->getId())->getName()) );
-		    echo '</div>';
-		    echo '</td></tr>';
-
-		    echo '<tr><td colspan="3"><hr></td></tr>';
-
-		    echo '<tr><td>';
-		    echo '<label style="font-weight:bold" for="eval_public">' ._("Ergebnisweiterleitung an Studiendekanin/Studiendekan (und evtl. Evaluationsbeauftragte/n)") . '</label>';
-		    if (count($lehrende)) {
-		        echo '<ul style="font-size:smaller">';
-		        foreach($lehrende as $l) {
-		            echo '<li>';
-		            echo htmlReady($l['Nachname'] . ', '. $l['Vorname'][0] . '.');
-		            echo '&nbsp;(' . (self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $l['user_id']) + 1) . ')';
-		            echo '</li>';
-		        }
-		        echo '</ul>';
-		    }
-		    echo '</td><td align="center">';
-		    echo '1.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="0" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 0 ? 'checked' : '').' >';
-		    echo '</td><td>';
-		    echo '<div style="font-style:italic; padding-left: 10px;">';
-		    echo sprintf(_("Keine Ergebnisweiterleitung.")
-		    , htmlready(Seminar::getInstance($this->getId())->getName()) );
-		    echo '</div>';
-		    echo '</td></tr>';
-		    echo '<tr><td>';
-		    echo '&nbsp;';
-		    echo '</td><td align="center">';
-		    echo '2.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 1 ? 'checked' : '').' >';
-		    echo '</td><td>';
-		    echo '<div style="font-style:italic; padding-left: 10px;">';
-		    echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) <b>an die Studiendekanin bzw. den Studiendekan</b> bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-		    , htmlready(Seminar::getInstance($this->getId())->getName()) );
-		    echo '</div>';
-		    echo '</td></tr>';
-		    echo '<tr><td>';
-		    echo '&nbsp;';
-		    echo '</td><td align="center">';
-		    echo '3.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="2" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 2 ? 'checked' : '').' >';
-		    echo '</td><td>';
-		    echo '<div style="font-style:italic; padding-left: 10px;">';
-		    echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) <b>an die Studiendekanin bzw. den Studiendekan und die Evaluationsbeauftragte bzw. den Evaluationsbeauftragten</b> bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-		    , htmlready(Seminar::getInstance($this->getId())->getName()) );
-		    echo '</div>';
-		    echo '</td></tr>';
-
-   		    echo '<tr><td colspan="3"><hr></td></tr>';
-
-   		    echo '<tr><td>';
-		    echo '<label style="font-weight:bold" for="eval_stored">' ._("Ergebnis dauerhaft speichern") . '</label>';
-		    if (count($lehrende)) {
-		        echo '<ul style="font-size:smaller">';
-		        foreach($lehrende as $l) {
-		            echo '<li>';
-		            echo htmlReady($l['Nachname'] . ', '. $l['Vorname'][0] . '.');
-		            echo '&nbsp;(' . (self::getDatafieldValue(self::$datafield_id_auswertung_speichern, $this->getID(), $l['user_id']) ? 'Ja' : 'Nein') . ')';
-		            echo '</li>';
-		        }
-		        echo '</ul>';
-		    }
-		    echo '</td><td align="center">';
-		    echo '<input name="eval_stored" id="eval_stored" type="checkbox" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_speichern, $this->getID(), $GLOBALS['user']->id) ? 'checked' : '').' >';
-		    echo '</td><td>';
-		    echo '<div style="font-style:italic; padding-left: 10px;">';
-		    echo sprintf(_("Mit der dauerhaften Speicherung der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-		    , htmlready(Seminar::getInstance($this->getId())->getName()) );
-		    echo '</div>';
-		    echo '</td></tr>';
-
-
-
-		    echo '<tr><td colspan="3" align="center">'.makeButton('uebernehmen', 'input','','ok').'</td></tr>';
-		    echo chr(10). '</table>';
-
-		    echo chr(10) . '</fieldset></form>';
-
-		}*/
-		echo chr(10) . '<h3>' . _("Status der Lehrevaluation:") . '</h3>';
+		echo chr(10) . '<div style="margin:10px;">';
+		echo chr(10) . '<h2>' . _("Status der Lehrevaluation:") . '</h2>';
 		if (isset($this->course_status['time_frame'])){
 			echo chr(10) . '<p>';
 			echo chr(10) . _("Zeitraum:") . '&nbsp;'. strftime("%x", $this->course_status['time_frame']['begin']) . ' - ' . strftime("%x", $this->course_status['time_frame']['end']);
 			echo chr(10) . '</p>';
 		}
-		/*Uni OL
-		$additional_data = self::getAdditionalExportData($this->getId());
-		if ($GLOBALS['perm']->have_perm('root')) {
-		    $weiterleitung[0] = _("Keine Ergebnisweiterleitung");
-		    $weiterleitung[1] = _("Ergebnisweiterleitung an Studiendekanin/Studiendekan");
-		    $weiterleitung[2] = _("Ergebnisweiterleitung an Studiendekanin/Studiendekan und Evaluationsbeauftragte/n");
-
-		    echo chr(10) . '<p>' . _("An Zensus übermittelte Einstellungen:");
-			echo chr(10) . '<ul>';
-			echo chr(10) . '<li>' . _("Konkrete Teilnehmerzahl") . ': ';
-			echo (int)$additional_data['eval_participants'];
-			echo chr(10) . '</li>';
-			echo chr(10) . '<li>' . _("Ergebnisweiterleitung an Studiendekanin/Studiendekan") . ': ';
-			echo $weiterleitung[$additional_data['eval_public']];
-			echo chr(10) . '</li>';
-			echo chr(10) . '<li>' . _("Ergebnis dauerhaft speichern") . ': ';
-			echo $additional_data['eval_stored'] ? _("Ja") : _("Nein");
-			echo chr(10) . '</li>';
-			echo chr(10) . '<li>' . _("Ergebnisweiterleitung an Studierende") . ': ';
-			echo $additional_data['eval_public_stud'] ? _("Ja") : _("Nein");
-			echo chr(10) . '</li>';
-			echo chr(10) . '</ul>';
-			echo chr(10) . '</p>';
-		}*/
-		if (($this->course_status['status']	&& strpos($this->course_status['status'], 'error') === false)){
+		if (($this->course_status['status']	&& $this->course_status['status'] != 'not found')){
 			echo chr(10) . '<p>';
 			echo chr(10) . $this->getCourseStatusMessage();
 			echo chr(10) . '</p>';
-			if ($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['results'] || $this->course_status['noresultsreason']){
+			if ($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['results']){
 				echo chr(10) . '<div style="font-weight:bold;font-size:10pt;border: 1px solid;padding:5px">' . _("Mögliche Aktionen:") . '<div style="font-size:10pt;margin-left:10px">';
 				if ($this->course_status['preview']) {
 					echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('preview',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
 					echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Eine Voransicht des Fragebogens aufrufen") . '</a></p>';
 				}
-				if ($this->course_status['pdfquestionnaire'] && $GLOBALS['perm']->have_studip_perm('dozent', $this->getId()) ) {
-				    echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfquestionnaire',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
-                    echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Papierfragebogen für manuelle Erhebung als PDF aufrufen") . '</a></p>';
-				}
-
-				if ($this->course_status['results']
-				    && $GLOBALS['perm']->have_studip_perm('dozent', $this->getId())
-				    && $GLOBALS['auth']->auth['perm'] != 'admin'
-				    && $GLOBALS['auth']->auth['perm'] != 'root') {
+				if ($this->course_status['results'] && $GLOBALS['perm']->have_studip_perm('dozent', $this->getId()) && $GLOBALS['auth']->auth['perm'] != 'admin' && $GLOBALS['auth']->auth['perm'] != 'root') {
 					echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
 					echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
-                    if ($this->course_status['pdfdetailfreetexts']) {
-                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
-                        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
-                    }
-                    if ($this->course_status['pdfresults']) {
-                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
-                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
-                    }
 				}
-				if ($this->course_status['results']
-				    && $GLOBALS['perm']->get_studip_perm($this->getId()) == 'autor'
-				    && !$this->course_status['questionnaire']
-				    && $additional_data['eval_public_stud']
-					) {
-				    echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
-					echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
-                    if ($this->course_status['pdfresults']) {
-                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
-                        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
-                    }
-                }
+				if ($this->course_status['pdfdetailfreetexts'] && $GLOBALS['perm']->have_studip_perm('dozent', $this->getId()) && $GLOBALS['auth']->auth['perm'] != 'admin' && $GLOBALS['auth']->auth['perm'] != 'root') {
+					echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
+					echo chr(10) . '<img src="'.$GLOBALS['ASSETS_URL'].'images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
 
-				if ($this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('autor', $this->getId()) && $GLOBALS['auth']->auth['perm'] != 'admin') {
-				    if($this->course_status['noresultsreason'] == 'wrong phase') {
-    					echo chr(10) . '<p>';
-    					echo _("Die Auswertung liegt noch nicht vor, da die Evaluation noch läuft.");
-    					echo chr(10) . '</p>';
-				    }
-				    if($this->course_status['noresultsreason'] == 'too few answers') {
-    					echo chr(10) . '<p>';
-    					echo _("Die Evaluation ist beendet, aber die Auswertung liegt nicht vor, bzw. die notwendige Rücklaufquote wurde leider nicht erreicht.");
-    					echo chr(10) . '</p>';
-				    }
+					echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
+					echo chr(10) . '<img src="'.$GLOBALS['ASSETS_URL'].'images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
 				}
 				if($GLOBALS['perm']->have_perm('root')){
 					foreach(Seminar::getInstance($this->getId())->getMembers('dozent') as $m){
@@ -461,27 +236,21 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 						if ($this->course_status['pdfdetailfreetexts']) {
 							echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$m
 								['user_id']) . '">';
-							echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die
+							echo chr(10) . '<img src="'.$GLOBALS['ASSETS_URL'].'images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die
 								Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
-						}
-						if ($this->course_status['pdfresults']) {
+
 							echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$m[
 								'user_id']) . '">';
-    						echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die
+							echo chr(10) . '<img src="'.$GLOBALS['ASSETS_URL'].'images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die
 								Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
 						}
-
 						echo '<hr>';
 					}
 				}
 				if ($this->course_status['questionnaire']){
 					if (!$GLOBALS['perm']->have_studip_perm('dozent' , $this->getId())){
-					    if (!$this->course_status['pdfquestionnaire']) {
-					        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('questionnaire',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
-					        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Den Fragebogen aufrufen und an der Evaluation teilnehmen") . '</a></p>';
-						} else {
-						    echo chr(10) .'<p>'. _("Für diese Evaluation ist ein Papierfragebogen vorgesehen. Weitere Informationen bekommen Sie von den Lehrenden der Veranstaltung.") . '</p>';
-						}
+						echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('questionnaire',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
+						echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Den Fragebogen aufrufen und an der Evaluation teilnehmen") . '</a></p>';
 					} else {
 						echo chr(10) . '<p>'._("Als Dozent der Veranstaltung können sie nicht an der Evaluation teilnehmen!") . '</p>';
 					}
@@ -489,32 +258,12 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 					echo chr(10) .'<p>'. _("Sie haben an dieser Evaluation bereits teilgenommen!") . '</p>';
 				}
 
-				echo chr(10) . '</div>';
-				echo '</div>';
+				echo chr(10) . '</div></div>';
 			}
 		} else {
 			echo chr(10) . '<p style="font-weight:bold">' . _("Zu dieser Veranstaltung ist keine Evaluation verfügbar.") . '</p>';
 		}
-		if ($GLOBALS['perm']->have_perm('root')) {
-		    $ex_tstamp = date('Y-m-d-H-i');
-		    $ex_hash = md5(get_config('UNIZENSUSPLUGIN_SHARED_SECRET1') . $ex_tstamp . get_config('UNIZENSUSPLUGIN_SHARED_SECRET2'));
-		    $range_id = $this->getId();
-		    $cid = null;
-		    $ex_only_visible = 0;
-		    $authcode = UserConfig::get($GLOBALS['user']->id)->UNIZENSUSPLUGIN_AUTH_TOKEN;
-		    $link = UrlHelper::getLink('plugins.php/unizensusadminplugin/export', compact('range_id', 'ex_tstamp', 'ex_hash','authcode','ex_only_visible','cid'));
-		    printf('<a href="%s" target="_blank">XML Export</a>', $link);
-		}
 		echo chr(10) . '</div>';
-
-	}
-	function display_action($action) {
-	    PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
-	    include 'lib/include/html_head.inc.php';
-		include 'lib/include/header.php';
-		$this->$action();
-		include 'lib/include/html_end.inc.php';
-		page_close();
 	}
 }
 ?>
