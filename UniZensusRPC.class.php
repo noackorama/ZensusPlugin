@@ -20,18 +20,12 @@ class UniZensusRPC {
 			return $cached_result;
 		}
 		$result = array();
-		$tstamp = date('Y-m-d-H-i');
-		$hash = hash_hmac('md5', $course_id.$tstamp.$user_id, $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2']);
 		if (is_null($user_id)){
-			$msg = new xmlrpcmsg("info.course_status_v3", array(new xmlrpcval($course_id, "string"),
-			                                        new xmlrpcval('Stud.IP', "string"),
-			                                        new xmlrpcval($tstamp, "string"),
-			                                        new xmlrpcval($hash, "string")));
+			$msg = new xmlrpcmsg("info.course_status_v2", array(new xmlrpcval($course_id, "string"),
+													new xmlrpcval('Stud.IP', 'string')));
 		} else {
-			$msg = new xmlrpcmsg("info.course_status_v3", array(new xmlrpcval($course_id, "string"),
-			                                        new xmlrpcval('Stud.IP', "string"),
-			                                        new xmlrpcval($tstamp, "string"),
-			                                        new xmlrpcval($hash, "string"),
+			$msg = new xmlrpcmsg("info.course_status_v2", array(new xmlrpcval($course_id, "string"),
+													new xmlrpcval('Stud.IP', 'string'),
 													new xmlrpcval($user_id, 'string')));
 		}
 		$response = $this->client->send($msg, $this->timeout);

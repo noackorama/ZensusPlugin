@@ -5,8 +5,8 @@
 *
 *
 *
-* @author        André Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
-* @version        $Id: UniZensusAdminPlugin.class.php,v 1.6 2013/04/04 15:17:49 anoack Exp $
+* @author		André Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
+* @version		$Id: UniZensusAdminPlugin.class.php,v 1.4 2011/12/09 10:18:11 anoack Exp $
 */
 // +---------------------------------------------------------------------------+
 // This file is part of Stud.IP
@@ -32,113 +32,64 @@ require_once "lib/classes/StudipForm.class.php";
 require_once "UniZensusPlugin.class.php";
 require_once 'zensus_xml_func.php';   // XML-Funktionen
 
-class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
+class UniZensusAdminPlugin extends AbstractStudIPSystemPlugin {
 
     private $user_is_eval_admin;
     private $zensuspluginid;
-
 
     public function __construct() {
 
         parent::__construct();
 
         if ($this->hasPermission()) {
-            $navigation = new Navigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
+            $navigation = new AutoNavigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
             if (basename($_SERVER['PHP_SELF']) == 'plugins.php') {
-
-                //Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
-                $token_navigation = new Navigation(_("Export Token"), PluginEngine::getLink($this, array(), 'token'));
-                $subnav = clone $navigation;
-                $subnav->addSubNavigation('show', clone $navigation);
-                $subnav->addSubNavigation('token', $token_navigation);
-                $navigation->addSubNavigation('sub', $subnav);
                 Navigation::addItem('/UniZensusAdmin', $navigation);
+                Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
             } else {
                 Navigation::addItem('/start/UniZensusAdmin', clone $navigation);
             }
             $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
             $this->zensuspluginid = $info['id'];
         }
-
     }
 
-    function getDisplayname() {
+    private function getDisplayname() {
         return _("Lehrevaluation-Administration");
     }
 
     private function hasPermission() {
-        //Uni OL
-        /*$user = $this->getUser();
+        $user = $this->getUser();
         $permission = $user->getPermission();
         if (!$permission->hasTeacherPermission()) {
-        return false;
+            return false;
         }
         if ($this->user_is_eval_admin === null) {
-        # Prüfen, ob der User die Rolle 'eval_admin' hat:
-        $eval_admin = false;
-        foreach ( $user->getAssignedRoles() as $role )
-        {
-        if ( $role->rolename === 'eval_admin' )
-        {
-        $eval_admin = true;
-        }
-        }
-        $this->user_is_eval_admin = $eval_admin;
+            # Prüfen, ob der User die Rolle 'eval_admin' hat:
+            $eval_admin = false;
+            foreach ( $user->getAssignedRoles() as $role )
+            {
+                if ( $role->rolename === 'eval_admin' )
+                {
+                    $eval_admin = true;
+                }
+            }
+            $this->user_is_eval_admin = $eval_admin;
         }
         return $permission->hasRootPermission() || $this->user_is_eval_admin;
-        */
-        return $GLOBALS['perm']->have_perm('admin');
     }
 
-
-    function token_action()
-    {
+    public function actionShow() {
         if (!$this->hasPermission()) {
             throw new AccessDeniedException("Nur Root und ausgewählte Admins dürfen dieses Plugin sehen.");
         }
-        Navigation::activateItem('/UniZensusAdmin/sub/token');
-        if (Request::submitted('generate_token')) {
-            UserConfig::get($GLOBALS['user']->id)->store('UNIZENSUSPLUGIN_AUTH_TOKEN', md5(uniqid('ZensusToken',1)));
-        }
-        ob_start();
-        echo '<p>';
-        echo _("Für den Import der Veranstaltungsdaten in das Zensus System müssen sie dort ein Authentifizierungstoken hinterlegen.");
-        echo '<br>' . _("Hier können Sie ein Token für Ihre aktuelle Nutzerkennung generieren.");
-        echo '</p>';
-        echo '<div>';
-        echo '<span style="font-weight:bold; padding-right:10px;">' . _("Nutzerkennung:") . '</span>';
-        echo $GLOBALS['auth']->auth['uname'] . ' (' . $GLOBALS['auth']->auth['perm'] . ')';
-        echo '</div>';
-        echo '<div>';
-        echo '<span style="font-weight:bold; padding-right:10px;">' . _("Token:") . '</span>';
-        echo htmlReady(UserConfig::get($GLOBALS['user']->id)->UNIZENSUSPLUGIN_AUTH_TOKEN);
-        echo '</div>';
-        echo '<div>';
-        echo '<form method="post" action="?">';
-        echo '<button class="button" type="submit" name="generate_token">' . _("neues Token erzeugen") . '</button>';
-        echo '</form>';
-        echo '</div>';
-        PageLayout::setTitle($this->getDisplayname());
-        $layout = $GLOBALS['template_factory']->open('layouts/base_without_infobox');
-        $layout->content_for_layout = ob_get_clean();
-        echo $layout->render();
-    }
 
-    function show_action() {
-
-        if (!$this->hasPermission()) {
-            throw new AccessDeniedException("Nur Root und ausgewählte Admins dürfen dieses Plugin sehen.");
-        }
-        Navigation::activateItem('/UniZensusAdmin/sub/show');
-        ob_start();
         $cols = array();
         $cols[] = array(1,'','');
         $cols[] = array(30,_("Veranstaltung"),'Name');
         $cols[] = array(15,_("Dozenten"),'dozenten');
-        $cols[] = array(5,_("&sum; Stud.IP"),'teilnehmer_anzahl_aktuell');
         $cols[] = array(5,_("Zensus Status"),'zensus_status');
-        $cols[] = array(5,_("&sum; Zensus"),'zensus_numvotes');
-        $cols[] = array(5,_("Plugin aktiv"),'plugin_activated');
+        $cols[] = array(5,_("Plugin eingeschaltet"),'plugin_activated');
         $cols[] = array(10,_("Startzeit manuell"),'begin_evaluation');
         $cols[] = array(10,_("Endzeit manuell"),'end_evaluation');
         $cols[] = array(10,_("Startzeit automatisch"),'time_frame_begin');
@@ -176,7 +127,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 $db = new DB_Seminar();
                 foreach(array_keys($_REQUEST['sem_choosen']) as $seminar_id){
                     $db->queryf("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES ('%s','%s','%s')",
-                        $this->zensuspluginid, 'sem' . $seminar_id, $set_to_status);
+                    $this->zensuspluginid, 'sem' . $seminar_id, $set_to_status);
                 }
                 $form->doFormReset();
             }
@@ -242,16 +193,16 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             reset($_my_inst);
             while (list($key,$value) = each($_my_inst)){
                 printf ("<option %s value=\"%s\" style=\"%s\">%s (%s)</option>\n",
-                    ($key == $_SESSION['zensus_admin']['institut_id']) ? "selected" : "" , $key,($value["is_fak"] ? "font-weight:bold;" : ""),
-                    htmlReady($value["name"]), $value["num_sem"]);
+                ($key == $_SESSION['zensus_admin']['institut_id']) ? "selected" : "" , $key,($value["is_fak"] ? "font-weight:bold;" : ""),
+                htmlReady($value["name"]), $value["num_sem"]);
 
                 if ($value["is_fak"] == 'all'){
                     $num_inst = $value["num_inst"];
                     for ($i = 0; $i < $num_inst; ++$i){
                         list($key,$value) = each($_my_inst);
                         printf("<option %s value=\"%s\">&nbsp;&nbsp;&nbsp;&nbsp;%s (%s)</option>\n",
-                            ($key == $_SESSION['zensus_admin']['institut_id']) ? "selected" : "", $key,
-                            htmlReady($value["name"]), $value["num_sem"]);
+                        ($key == $_SESSION['zensus_admin']['institut_id']) ? "selected" : "", $key,
+                        htmlReady($value["name"]), $value["num_sem"]);
                     }
                 }
             }
@@ -284,7 +235,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $data = $this->getSeminareData($sem_condition);
             $cssSw = new CssClassSwitcher();
 
-            if (count($data)) {
+        if (count($data)) {
                 if($form->isClicked('switch')){
                     foreach($data as $seminar_id => $semdata) {
                         if(!isset($_REQUEST['sem_choosen'][$seminar_id])) $data[$seminar_id]['choosen'] = true;
@@ -348,9 +299,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                         continue;
                     }
                     $data[$seminar_id]['link'] = "<a href=\"".PluginEngine::GetLink($plugin,array('cid' => $seminar_id)) . "\">"
-                    . htmlReady($plugin->course_status['status'])."</a>";
+                                            . htmlReady($plugin->course_status['status'])."</a>";
                     $data[$seminar_id]['zensus_status'] = $plugin->course_status['status'];
-                    $data[$seminar_id]['zensus_numvotes'] = $plugin->course_status['numvotes'];
                     $data[$seminar_id]['time_frame_begin'] = $plugin->course_status['time_frame']['begin'];
                     $data[$seminar_id]['time_frame_end'] = $plugin->course_status['time_frame']['end'];
                     $data[$seminar_id]['plugin_activated'] = true;
@@ -365,7 +315,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 $data[$seminar_id]['dozenten'] = join(', ',(array)$semdata['dozenten']);
                 $sorter[$seminar_id] = $data[$seminar_id][$_SESSION['zensus_admin']['sortby']['field']];
             }
-            if($_SESSION['zensus_admin']['sortby']['field'] && count($data) && count($data) == count($sorter)){
+			if($_SESSION['zensus_admin']['sortby']['field'] && count($data) && count($data) == count($sorter)){
                 array_multisort($sorter, ($_SESSION['zensus_admin']['sortby']['direction'] ? SORT_ASC : SORT_DESC), $data);
             }
             $semlink = $GLOBALS['perm']->have_studip_perm('admin', $_SESSION['zensus_admin']['institut_id']) ? 'seminar_main.php?auswahl=' : 'details.php?sem_id=';
@@ -374,85 +324,68 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo "<tr>\n";
                 echo '<td class="'.$cssSw->getClass().'" align="center"><input type="checkbox" name="sem_choosen['.$seminar_id.']" value="1" '.($semdata['choosen'] ? 'checked':'').'></td>';
                 printf ("<td class=\"%s\">
-                    <a title=\"%s\" href=\"%s\">
-                    <font size=\"-1\">%s%s%s</font>
-                    </a></td>
-                    <td class=\"%s\" align=\"center\">
-                    <font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
-                    ",
-                    $cssSw->getClass(),
-                    htmlready($semdata['Name']),
-                    UrlHelper::getLink($semlink.$seminar_id),
-                    htmlready(substr($semdata['Name'], 0, 60)),
-                    (strlen($semdata['Name'])>60) ? "..." : "",
-                    !$semdata['visible'] ? ' ' . _("(versteckt)") : '',
-                    $cssSw->getClass(),
-                    htmlReady($semdata['dozenten']),
-                    $cssSw->getClass(),
-                    htmlReady($semdata['teilnehmer_anzahl_aktuell']),
-                    $cssSw->getClass(),
-                    $semdata['link'],
-                    $cssSw->getClass(),
-                    htmlReady($semdata['zensus_numvotes']),
-                    $cssSw->getClass(),
-                    ($semdata['plugin_activated'] ? 'ja' : 'nein') ,
-                    $cssSw->getClass(),
-                    $semdata['begin_evaluation'] ? date("d.m.Y", $semdata['begin_evaluation']) : '-',
-                    $cssSw->getClass(),
-                    $semdata['end_evaluation'] ? date("d.m.Y", $semdata['end_evaluation']) : '-',
-                    $cssSw->getClass(),
-                    ($semdata['time_frame_begin'] ? date("d.m.Y", $semdata['time_frame_begin']) : '-'),
-                    $cssSw->getClass(),
-                    ($semdata['time_frame_end'] ? date("d.m.Y", $semdata['time_frame_end']) : '-')
-                    );
+                <a title=\"%s\" href=\"%s\">
+                <font size=\"-1\">%s%s%s</font>
+                </a></td>
+                <td class=\"%s\" align=\"center\">
+                <font size=\"-1\">%s</font></td>
+                <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                <td class=\"%s\" align=\"center\"><font size=\"-1\">%s</font></td>
+                ",
+                $cssSw->getClass(),
+                htmlready($semdata['Name']),
+                UrlHelper::getLink($semlink.$seminar_id),
+                htmlready(substr($semdata['Name'], 0, 60)),
+                (strlen($semdata['Name'])>60) ? "..." : "",
+                !$semdata['visible'] ? ' ' . _("(versteckt)") : '',
+                $cssSw->getClass(),
+                htmlReady($semdata['dozenten']),
+                $cssSw->getClass(),
+                $semdata['link'],
+                $cssSw->getClass(),
+                ($semdata['plugin_activated'] ? 'ja' : 'nein') ,
+                $cssSw->getClass(),
+                $semdata['begin_evaluation'] ? date("d.m.Y", $semdata['begin_evaluation']) : '-',
+                $cssSw->getClass(),
+                $semdata['end_evaluation'] ? date("d.m.Y", $semdata['end_evaluation']) : '-',
+                $cssSw->getClass(),
+                ($semdata['time_frame_begin'] ? date("d.m.Y", $semdata['time_frame_begin']) : '-'),
+                $cssSw->getClass(),
+                ($semdata['time_frame_end'] ? date("d.m.Y", $semdata['time_frame_end']) : '-')
+                );
                 echo "</tr>";
             }
             echo "</table>";
             echo $form->getFormEnd();
             echo '</div>';
         } else {
-            echo MessageBox::info(_("Sie wurden noch keinen Einrichtungen zugeordnet."));
+            $_msg[] = array("info", sprintf(_("Sie wurden noch keinen Einrichtungen zugeordnet. Bitte wenden Sie sich an einen der zust&auml;ndigen %sAdministratoren%s."), "<a href=\"impressum.php?view=ansprechpartner\">", "</a>"));
         }
-
-        PageLayout::setTitle($this->getDisplayname());
-
-        $layout = $GLOBALS['template_factory']->open('layouts/base_without_infobox');
-
-        $layout->content_for_layout = ob_get_clean();
-
-        echo $layout->render();
 
     }
 
-    function getInstitute($seminare_condition){
+    private function getInstitute($seminare_condition){
         global $perm, $user,$_default_sem;
         $db = new DB_Seminar();
         $db2 = new DB_Seminar();
-        if($perm->have_perm('root')){
+        if($this->hasPermission()){
             $db->query("SELECT COUNT(*) FROM seminare WHERE 1 $seminare_condition");
             $db->next_record();
             $_my_inst['all'] = array("name" => _("alle") , "num_sem" => $db->f(0));
             $db->query("SELECT a.Institut_id,a.Name, 1 AS is_fak, count(seminar_id) AS num_sem FROM Institute a
-                LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE a.Institut_id=fakultaets_id GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
-        } else {
-            $db->query("SELECT a.Institut_id,b.Name, IF(b.Institut_id=b.fakultaets_id,1,0) AS is_fak,count(seminar_id) AS num_sem FROM user_inst a LEFT JOIN Institute b USING (Institut_id)
-                LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE a.user_id='$user->id' AND a.inst_perms='admin' GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
+            LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE a.Institut_id=fakultaets_id GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         }
         while($db->next_record()){
             $_my_inst[$db->f("Institut_id")] = array("name" => $db->f("Name"), "is_fak" => $db->f("is_fak"), "num_sem" => $db->f("num_sem"));
             if ($db->f("is_fak")){
                 $_my_inst[$db->f("Institut_id").'_all'] = array("name" => '[Alle unter '.$db->f("Name").']', "is_fak" => 'all', "num_sem" => $db->f("num_sem"));
                 $db2->query("SELECT a.Institut_id, a.Name,count(seminar_id) AS num_sem FROM Institute a
-                    LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE fakultaets_id='" . $db->f("Institut_id") . "' AND a.Institut_id!='" .$db->f("Institut_id") . "'
-                    GROUP BY a.Institut_id ORDER BY a.Name,num_sem DESC");
+                LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE fakultaets_id='" . $db->f("Institut_id") . "' AND a.Institut_id!='" .$db->f("Institut_id") . "'
+                GROUP BY a.Institut_id ORDER BY a.Name,num_sem DESC");
                 $num_inst = 0;
                 $num_sem_alle = $db->f("num_sem");
                 while ($db2->next_record()){
@@ -470,7 +403,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         return $_my_inst;
     }
 
-    function getSeminareData($seminare_condition){
+    private function getSeminareData($seminare_condition){
         global $perm;
         $db = new DB_Seminar();
         $db2 = new DB_Seminar();
@@ -480,10 +413,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
         $ret = array();
         list($institut_id, $all) = explode('_', $_SESSION['zensus_admin']['institut_id']);
-        if ($institut_id == "all"  && $perm->have_perm("root"))
-            $query = "SELECT Name,Seminar_id as seminar_id, VeranstaltungsNummer, visible FROM seminare WHERE 1 $seminare_condition ORDER BY Name";
+        if ($institut_id == "all"  && $this->hasPermission())
+        $query = "SELECT Name,Seminar_id as seminar_id, VeranstaltungsNummer, visible FROM seminare WHERE 1 $seminare_condition ORDER BY Name";
         elseif ($all == 'all')
-            $query = "SELECT seminare.Name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer, seminare.visible FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
+        $query = "SELECT seminare.Name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer, seminare.visible FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
         INNER JOIN Institute ON seminar_inst.institut_id = Institute.Institut_id WHERE Institute.fakultaets_id  = '{$institut_id}' $seminare_condition
         GROUP BY seminare.Seminar_id ORDER BY Name";
         else
@@ -504,10 +437,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     break;
                 }
             }
-            $query2 = "SELECT COUNT(*) FROM seminar_user WHERE seminar_id='$seminar_id' AND status IN ('autor')";
-            $db2->query($query2);
-            $db2->next_record();
-            $ret[$seminar_id]['teilnehmer_anzahl_aktuell'] = $db2->f(0);
             $query2 = "SELECT datafield_id,content FROM datafields_entries WHERE range_id='$seminar_id' AND datafield_id IN('$datafield1','$datafield2')";
             $db2->query($query2);
             while($db2->next_record()){
@@ -556,30 +485,20 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         }
     }
 
-    function export_action()
+    function actionExport()
     {
         global $ex_sem, $ex_only_homeinst,$ex_sem_class, $ex_only_visible;
 
         global $xml_groupnames_fak,$xml_names_fak,$xml_groupnames_inst,$xml_names_inst
-        ,$xml_groupnames_lecture,$xml_names_lecture,$xml_groupnames_person
-        ,$xml_names_person,$xml_groupnames_studiengaenge,$xml_names_studiengaenge;
+               ,$xml_groupnames_lecture,$xml_names_lecture,$xml_groupnames_person
+               ,$xml_names_person,$xml_groupnames_studiengaenge,$xml_names_studiengaenge;
 
         require_once ('lib/export/export_xml_vars.inc.php');   // XML-Variablen
 
-        //Uni OL
-        /*
         $xml_names_lecture['teilnehmer_anzahl_aktuell'] = array($this, 'getExportData');
         $xml_names_lecture['resultpublic'] = array($this, 'getExportData');
         $xml_names_lecture['resultstore'] = array($this, 'getExportData');
-        */
 
-        $authcode = Request::option('authcode');
-        if ($authcode) {
-            $auth_uid = DbManager::get()->query("SELECT user_id FROM user_config WHERE field='UNIZENSUSPLUGIN_AUTH_TOKEN' AND value='$authcode'")->fetchColumn();
-            if (!$auth_uid) $export_error = 'wrong authcode';
-        } else {
-            $export_error = 'missing authcode';
-        }
         $ex_tstamp = Request::get('ex_tstamp');
         list($y,$M,$d,$h,$m) = explode('-', $ex_tstamp);
         $tstamp = mktime($h,$m,0,$M,$d,(int)$y);
@@ -597,7 +516,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         $range_id = Request::option('range_id', 'root');
-        $ex_only_visible = Request::int('ex_only_visible', 0);
+        $ex_only_visible = Request::int('ex_only_visible', 1);
         $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
         $ex_sem_class = Request::intArray('ex_sem_class');
         if (!count($ex_sem_class)) $ex_sem_class[] = 1;
@@ -605,11 +524,26 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         while(ob_get_level()) ob_end_clean();
         header("Content-type: text/xml; charset=utf-8");
         if ($export_error) {
-            header('HTTP/1.1 403 Forbidden');
             echo '<?xml version="1.0"?>' . chr(10);
             echo zensus_xmltag('studip_export_error_msg', strip_tags($export_error));
             exit();
         }
-        zensus_export_range($range_id, $ex_sem, 'direct',$auth_uid);
+        zensus_export_range($range_id, $ex_sem, 'direct');
     }
+
+    function display_action($action) {
+        if (strtolower($action) == 'actionshow') {
+            if (!isset($GLOBALS['CURRENT_PAGE'])) {
+                $GLOBALS['CURRENT_PAGE'] = $this->getDisplayTitle();
+            }
+            include 'lib/include/html_head.inc.php';
+            include 'lib/include/header.php';
+            $this->$action();
+            include 'lib/include/html_end.inc.php';
+        } else {
+            $this->$action();
+        }
+    }
+
 }
+

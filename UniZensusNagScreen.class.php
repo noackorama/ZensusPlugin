@@ -5,7 +5,7 @@ class UniZensusNagScreen extends StudIPPlugin implements SystemPlugin
     {
         parent::__construct();
         if (!$GLOBALS['perm']->have_perm('dozent') && in_array(basename($_SERVER['PHP_SELF']), array('meine_seminare.php'))
-            && (time() - $_SESSION['nag_screen_shown']) > (24*60*60)
+            && (time() - $GLOBALS['user']->user_vars['nag_screen_shown']) > (24*60*60)
         ) {
             $user_id = $GLOBALS['user']->id;
 
@@ -30,7 +30,7 @@ jQuery('document').ready(function(){
 });
 EOT;
 
-               	$_SESSION['nag_screen_shown'] = time();
+               	$GLOBALS['user']->user_vars['nag_screen_shown'] = time();
                 PageLayout::addHeadElement('script', array('type'=>'text/javascript'), $script);
             }
         }

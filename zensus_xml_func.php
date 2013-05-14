@@ -158,7 +158,7 @@ function zensus_output_data($object_data, $output_mode = "direct", $flush = fals
 * @access   public
 * @param        string  $range_id   Stud.IP-range_id for export
 */
-function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid = null)
+function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct')
 {
     global $persons;
 
@@ -166,124 +166,79 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
 
     zensus_output_data ( zensus_xmlheader(), $o_mode);
 
-    if ($auth_uid && get_global_perm($auth_uid) != 'root') {
-        if ($range_id == 'root') {
-            $db->query("SELECT Institut_id, fakultaets_id FROM user_inst INNER JOIN Institute USING (Institut_id) WHERE inst_perms = 'admin' AND user_id = '" . $auth_uid . "' ORDER BY Institut_id=fakultaets_id");
-            $faks = array();
-            $insts = array();
-            while ($db->next_record()) {
-                if ($db->f('fakultaets_id') == $db->f('Institut_id')) $faks[] = $db->f('Institut_id');
-                else if (!in_array($db->f('Institut_id'), $faks)) $insts[] = $db->f('Institut_id');
-            }
-            foreach($faks as $f) {
-                $db->query("SELECT * FROM Institute WHERE Institut_id = '" . $f . "'");
-                if (($db->next_record()) And ($db->f("Name") != ""))
-                {
-                    zensus_export_inst( $f ,'all', $o_mode);
-                }
-                $db->query("SELECT * FROM Institute WHERE fakultaets_id = '" . $f . "' ");
-                while ($db->next_record()) {
-                    if (($db->f("Name") != "") And ($db->f("Institut_id") != $f))
-                    {
-                        zensus_export_inst( $db->f("Institut_id"),'all', $o_mode );
-                    }
-                }
-            }
-            foreach ($insts as $i) {
-                zensus_export_inst( $i ,'all', $o_mode);
-            }
-        } else {
-            if (get_object_type($range_id) == 'inst' && $GLOBALS['perm']->have_studip_perm('admin', $range_id, $auth_uid)) {
-                zensus_export_inst( $range_id, 'all' , $o_mode);
-            }
-            if (get_object_type($range_id) == 'fak' && $GLOBALS['perm']->have_studip_perm('admin', $range_id, $auth_uid)) {
-            $db->query("SELECT Institut_id FROM Institute WHERE fakultaets_id = '" . $range_id . "' ORDER BY Institut_id=fakultaets_id");
-                while ($db->next_record()) {
-                    zensus_export_inst( $db->f("Institut_id"),'all', $o_mode );
-                }
-            }
-            if (get_object_type($range_id) == 'sem' && $GLOBALS['perm']->have_studip_perm('admin', $range_id, $auth_uid)) {
-                $db->query("SELECT * FROM seminare WHERE Seminar_id = '" . $range_id . "'");
-                if (($db->next_record()) And ($db->f("Name") != ""))
-                {
-                    zensus_export_inst( $db->f("Institut_id"), $db->f("Seminar_id") , $o_mode);
-                }
-            }
-        }
-    } else {
-        //    Ist die Range-ID eine Einrichtungs-ID?
-        $db->query("SELECT * FROM Institute WHERE Institut_id = '" . $range_id . "'");
-        if (($db->next_record()) And ($db->f("Name") != ""))
+    //    Ist die Range-ID eine Einrichtungs-ID?
+    $db->query("SELECT * FROM Institute WHERE Institut_id = '" . $range_id . "'");
+    if (($db->next_record()) And ($db->f("Name") != ""))
+    {
+        zensus_export_inst( $range_id ,'all', $o_mode);
+    }
+
+    //  Ist die Range-ID eine Fakultaets-ID? Dann auch untergeordnete Institute exportieren!
+    $db->query("SELECT * FROM Institute WHERE fakultaets_id = '" . $range_id . "' ");
+    while ($db->next_record())
+    if (($db->f("Name") != "") And ($db->f("Institut_id") != $range_id))
+    {
+        zensus_export_inst( $db->f("Institut_id"),'all', $o_mode );
+    }
+
+    //    Ist die Range-ID eine Seminar-ID?
+    $db->query("SELECT * FROM seminare WHERE Seminar_id = '" . $range_id . "'");
+    if (($db->next_record()) And ($db->f("Name") != ""))
+    {
+        zensus_export_inst( $db->f("Institut_id"), $db->f("Seminar_id") , $o_mode);
+    }
+
+
+    //    Ist die Range-ID ein Range-Tree-Item?
+    if($range_id != 'root'){
+        $tree_object = new RangeTreeObject($range_id);
+        $range_name = $tree_object->item_data["name"];
+        //    Tree-Item ist ein Institut:
+        if ($tree_object->item_data['studip_object'] == 'inst')
         {
-            zensus_export_inst( $range_id ,'all', $o_mode);
+            zensus_export_inst( $tree_object->item_data['studip_object_id'], 'all', $o_mode );
         }
+        //    Tree-Item hat Institute als Kinder:
+        $inst_array = $tree_object->GetInstKids();
 
-        //  Ist die Range-ID eine Fakultaets-ID? Dann auch untergeordnete Institute exportieren!
-        $db->query("SELECT * FROM Institute WHERE fakultaets_id = '" . $range_id . "' ");
-        while ($db->next_record())
-        if (($db->f("Name") != "") And ($db->f("Institut_id") != $range_id))
+        if (sizeof($inst_array) > 0)
         {
-            zensus_export_inst( $db->f("Institut_id"),'all', $o_mode );
-        }
-
-        //    Ist die Range-ID eine Seminar-ID?
-        $db->query("SELECT * FROM seminare WHERE Seminar_id = '" . $range_id . "'");
-        if (($db->next_record()) And ($db->f("Name") != ""))
-        {
-            zensus_export_inst( $db->f("Institut_id"), $db->f("Seminar_id") , $o_mode);
-        }
-
-
-        //    Ist die Range-ID ein Range-Tree-Item?
-        if($range_id != 'root'){
-            $tree_object = new RangeTreeObject($range_id);
-            $range_name = $tree_object->item_data["name"];
-            //    Tree-Item ist ein Institut:
-            if ($tree_object->item_data['studip_object'] == 'inst')
+            while (list($key, $inst_ids) = each($inst_array))
             {
-                zensus_export_inst( $tree_object->item_data['studip_object_id'], 'all', $o_mode );
-            }
-            //    Tree-Item hat Institute als Kinder:
-            $inst_array = $tree_object->GetInstKids();
-
-            if (sizeof($inst_array) > 0)
-            {
-                while (list($key, $inst_ids) = each($inst_array))
-                {
-                    zensus_export_inst($inst_ids, 'all', $o_mode);
-                }
-            }
-        }
-
-        $db->query("SELECT sem_tree_id FROM sem_tree WHERE sem_tree_id = '$range_id' ");
-        if ($db->next_record() || $range_id=='root'){
-            if (isset($ex_sem) && $semester = Semester::find($ex_sem)){
-                $args = array('sem_number' => array(SemesterData::GetSemesterIndexById($ex_sem)));
-            } else {
-                $args = array();
-            }
-            if ($range_id != 'root') {
-                $the_tree = TreeAbstract::GetInstance('StudipSemTree', $args);
-                $sem_ids = array_unique($the_tree->getSemIds($range_id, true));
-            }
-            if(is_array($sem_ids) || $range_id == 'root'){
-                if(is_array($sem_ids)) {
-                    $to_export = DbManager::get()
-                            ->query("SELECT DISTINCT Institut_id FROM seminare
-                                      WHERE Seminar_id IN('".join("','", $sem_ids)."')")
-                            ->fetchAll(PDO::FETCH_COLUMN);
-                } else {
-                    $sem_ids = 'root';
-                    $to_export = DbManager::get()
-                            ->query("SELECT DISTINCT Institut_id FROM seminare INNER JOIN seminar_sem_tree USING(seminar_id)
-                                    " . ($semester ?
-                                       "WHERE seminare.start_time <=".$semester->beginn." AND (".$semester->beginn." <= (seminare.start_time + seminare.duration_time) OR seminare.duration_time = -1)"
-                                        : ""))->fetchAll(PDO::FETCH_COLUMN);
-                }
-                foreach($to_export as $inst) zensus_export_inst($inst, $sem_ids, $o_mode);
+                zensus_export_inst($inst_ids, 'all', $o_mode);
             }
         }
     }
+
+    $db->query("SELECT sem_tree_id FROM sem_tree WHERE sem_tree_id = '$range_id' ");
+    if ($db->next_record() || $range_id=='root'){
+        if (isset($ex_sem) && $semester = Semester::find($ex_sem)){
+            $args = array('sem_number' => array(SemesterData::GetSemesterIndexById($ex_sem)));
+        } else {
+            $args = array();
+        }
+        if ($range_id != 'root') {
+            $the_tree = TreeAbstract::GetInstance('StudipSemTree', $args);
+            $sem_ids = array_unique($the_tree->getSemIds($range_id, true));
+        }
+        if(is_array($sem_ids) || $range_id == 'root'){
+            if(is_array($sem_ids)) {
+                $to_export = DbManager::get()
+                        ->query("SELECT DISTINCT Institut_id FROM seminare
+                                  WHERE Seminar_id IN('".join("','", $sem_ids)."')")
+                        ->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                $sem_ids = 'root';
+                $to_export = DbManager::get()
+                        ->query("SELECT DISTINCT Institut_id FROM seminare INNER JOIN seminar_sem_tree USING(seminar_id)
+                                " . ($semester ?
+                                   "WHERE seminare.start_time <=".$semester->beginn." AND (".$semester->beginn." <= (seminare.start_time + seminare.duration_time) OR seminare.duration_time = -1)"
+                                    : ""))->fetchAll(PDO::FETCH_COLUMN);
+            }
+            foreach($to_export as $inst) zensus_export_inst($inst, $sem_ids, $o_mode);
+        }
+    }
+
     if (is_array($persons)){
         zensus_export_persons(array_keys($persons), $o_mode);
     }
