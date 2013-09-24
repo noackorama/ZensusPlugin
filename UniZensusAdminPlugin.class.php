@@ -147,22 +147,29 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $cols[] = array(10,_("Startzeit automatisch"),'time_frame_begin');
         $cols[] = array(10,_("Endzeit automatisch"),'time_frame_end');
 
-        $form_fields['starttime']  = array('type' => 'date',  'separator' => '&nbsp;', 'default' => 'YYYY-MM-DD', 'date_popup' => true);
-        $form_fields['endtime']  = array('type' => 'date',  'separator' => '&nbsp;', 'default' => 'YYYY-MM-DD', 'date_popup' => true);
+        $form_fields['starttime']  = array('type' => 'text');
+        $form_fields['starttime']['attributes'] = array('size'=>10, 'onMouseOver' => 'jQuery(this).datepicker();');
+        $form_fields['endtime'] = array('type' => 'text');
+        $form_fields['endtime']['attributes'] = array('size'=>10, 'onMouseOver' => 'jQuery(this).datepicker();');
         $form_fields['plugin_status']  = array('type' => 'radio',  'separator' => '&nbsp;', 'default_value' => 1, 'options' => array(array('name'=>_("Ein"),'value'=>'1'),array('name'=>_("Aus"),'value'=>'0')));
-        $form_buttons['set_plugin_status'] = array('type' => 'uebernehmen', 'info' => _("Plugin ein/ausschalten"));
-        $form_buttons['set_starttime'] = array('type' => 'uebernehmen', 'info' => _("Startzeit übernehmen"));
-        $form_buttons['set_endtime'] = array('type' => 'uebernehmen', 'info' => _("Endzeit übernehmen"));
-        $form_buttons['switch'] = array('type' => 'auswahlumkehr', 'info' => _("Auswahl umkehren"));
+        $form_buttons['set_plugin_status'] = array('name' => 'uebernehmen', 'caption' => _("Plugin ein/ausschalten"));
+        $form_buttons['set_starttime'] = array('name' => 'uebernehmen', 'caption' => _("Startzeit übernehmen"));
+        $form_buttons['set_endtime'] = array('name' => 'uebernehmen', 'caption' => _("Endzeit übernehmen"));
         $form = new StudipForm($form_fields, $form_buttons, 'studipform', false);
 
         if($form->isClicked('set_starttime') || $form->isClicked('set_endtime')){
             if(is_array($_REQUEST['sem_choosen'])){
                 if ($form->isClicked('set_starttime')){
                     $datafield_value = $form->getFormFieldValue('starttime');
+                    if ($datafield_value) {
+                        $datafield_value = strftime('%Y-%m-%d', strtotime($datafield_value));
+                    }
                     $datafield_id = md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION');
                 } else {
                     $datafield_value = $form->getFormFieldValue('endtime');
+                    if ($datafield_value) {
+                        $datafield_value = strftime('%Y-%m-%d', strtotime($datafield_value));
+                    }
                     $datafield_id = md5('UNIZENSUSPLUGIN_END_EVALUATION');
                 }
                 $db = new DB_Seminar();
@@ -185,10 +192,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
 
-        if(isset($_REQUEST['choose_institut_x'])){
-            if(isset($_REQUEST['select_sem'])){
-                $_SESSION['_default_sem'] = $_REQUEST['select_sem'];
-            }
+        if (Request::submitted('choose_institut')) {
+            $_SESSION['_default_sem'] = Request::option('select_sem', $_SESSION['_default_sem']);
             $_SESSION['zensus_admin']['check_eval'] = isset($_REQUEST['check_eval']);
             $_SESSION['zensus_admin']['plugin_activated'] = isset($_REQUEST['plugin_activated']);
             $_SESSION['zensus_admin']['filter_name'] = trim(Request::get('filter_name'));
@@ -207,7 +212,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         if ($_SESSION['zensus_admin']['filter_name']) {
-            $sem_condition .= " AND seminare.Name LIKE '".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%' ";
+            $sem_condition .= " AND (seminare.Name LIKE '".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%' ";
+            $sem_condition .= " OR seminare.VeranstaltungsNummer LIKE '".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%') ";
         }
         if(isset($_REQUEST['sortby'])){
             foreach($cols as $col){
@@ -233,7 +239,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 $_SESSION['zensus_admin']['institut_id'] = ($_my_inst[$_REQUEST['institut_id']]) ? $_REQUEST['institut_id'] : $_my_inst_arr[1];
             }
             ?>
-            <div id="layout_container" style="padding-top:1px;">
             <form action="<?=PluginEngine::getLink($this)?>" method="post">
             <?= (class_exists('CSRFProtection') ? CSRFProtection::tokenTag() : '') ?>
             <div style="font-weight:bold;font-size:10pt;margin:10px;">
@@ -263,7 +268,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             ?>
             </select>&nbsp;
             <?=SemesterData::GetSemesterSelector(array('name'=>'select_sem', 'style'=>'vertical-align:middle;'), $_SESSION['_default_sem'], 'semester_id', false)?>
-            <?=makeButton("auswaehlen","input",_("Einrichtung auswählen"), "choose_institut")?>
+            <?=Studip\Button::create(_('Auswählen'), "choose_institut")?>
             <br>
             <span style="font-size:80%;">
             ausgewählte ID: <span style="background-color:yellow;"><?=$institut_id?></span>
@@ -272,13 +277,16 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             <div style="font-size:10pt;margin:10px;">
             <b><?=_("Angezeigte Veranstaltungen einschränken:")?></b>
             <span style="margin-left:10px;font-size:10pt;">
-            <input type="text" name="filter_name" value="<?=htmlReady($_SESSION['zensus_admin']['filter_name'])?>" style="vertical-align:middle;">&nbsp;<?=_("Name der Veranstaltung")?>
+            <input type="text" id="filter_name" name="filter_name" value="<?=htmlReady($_SESSION['zensus_admin']['filter_name'])?>" style="vertical-align:middle;">
+            &nbsp;<label for="filter_name"><?=_("Name/Nummer der Veranstaltung")?></label>
             </span>
             <span style="margin-left:10px;font-size:10pt;">
-            <input type="checkbox" name="check_eval" <?=$_SESSION['zensus_admin']['check_eval'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">&nbsp;<?=_("Evaluation in Zensus aktiviert")?>
+            <input type="checkbox" id="check_eval" name="check_eval" <?=$_SESSION['zensus_admin']['check_eval'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
+            &nbsp;<label for="check_eval"><?=_("Evaluation in Zensus aktiviert")?></label>
             </span>
             <span style="margin-left:10px;font-size:10pt;">
-            <input type="checkbox" name="plugin_activated" <?=$_SESSION['zensus_admin']['plugin_activated'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">&nbsp;<?=_("Plugin eingeschaltet")?>
+            <input type="checkbox" id="plugin_activated" name="plugin_activated" <?=$_SESSION['zensus_admin']['plugin_activated'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
+            &nbsp;<label for="plugin_activated"><?=_("Plugin eingeschaltet")?></label>
             </span>
             </div>
             </form>
@@ -315,21 +323,23 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo chr(10) . $form->getFormField('plugin_status');
                 echo '&nbsp;&nbsp;&nbsp;'. $form->getFormButton('set_plugin_status', array('style' => 'vertical-align:middle'));
                 echo chr(10). '</div>';
-                echo chr(10).'<div style="margin:10px;font-size:10pt;">';
-                echo $form->getFormButton('switch');
-                echo chr(10). '</div>';
+                echo chr(10). '<a name="zensustable"></a>';
                 echo "<table class=\"default\">";
                 echo "<tr>";
-                foreach($cols as $col){
+                foreach($cols as $i => $col) {
                     echo "<th width=\"{$col[0]}%\" style=\"font-size:80%;text-align:center\">";
-                    if($col[1]){
-                        echo '<a class="tree" href="';
-                        echo PluginEngine::getLink($this,array('sortby' => $col[2]));
-                        echo '">'.$col[1].'&nbsp;';
-                        if($col[2] == $_SESSION['zensus_admin']['sortby']['field']){
-                            printf('<img src="%s/images/%s" border="0" align="top">', $this->getPluginUrl(),$_SESSION['zensus_admin']['sortby']['direction'] ? 'dreieck_up.png' : 'dreieck_down.png');
+                    if (!$i) {
+                        echo '<input type="checkbox" onChange="jQuery(\'input[name^=sem_choosen]\').attr(\'checked\',this.checked);">';
+                    } else {
+                        if($col[1]){
+                            echo '<a class="tree" href="';
+                            echo PluginEngine::getLink($this,array('sortby' => $col[2], 'foo' => rand())) . '#zensustable';
+                            echo '">'.$col[1].'&nbsp;';
+                            if($col[2] == $_SESSION['zensus_admin']['sortby']['field']){
+                                printf('<img src="%s/images/%s" border="0" align="top">', $this->getPluginUrl(),$_SESSION['zensus_admin']['sortby']['direction'] ? 'dreieck_up.png' : 'dreieck_down.png');
+                            }
+                            echo '</a>';
                         }
-                        echo '</a>';
                     }
                     echo "</th>";
                 }
@@ -409,7 +419,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
             echo "</table>";
             echo $form->getFormEnd();
-            echo '</div>';
             if ($_SESSION['zensus_admin']['institut_id'] && !count($data)) {
                 echo MessageBox::info(_("Im gewählten Bereich existieren keine Veranstaltungen"));
             }
@@ -424,7 +433,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $layout->content_for_layout = ob_get_clean();
 
         echo $layout->render();
-
     }
 
     function getInstitute($seminare_condition){

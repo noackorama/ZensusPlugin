@@ -16,21 +16,21 @@ class UniZensusNagScreen extends StudIPPlugin implements SystemPlugin
 jQuery('document').ready(function(){
     if(jQuery('img[title="Den Fragebogen aufrufen und an der Evaluation teilnehmen"]').length > 0 && jQuery('#UniZensusNagScreenDialogbox').length == 0) {
     STUDIP.UniZensusNagScreen.dialog = jQuery('<div id="UniZensusNagScreenDialogbox"><img style="padding: 5px" src="$img_url" align="right"><span>' + '$content_box' + '</span></div>').dialog({
-		               show: '',
-		               hide: 'scale',
-		               title: '$titel_box',
-		               draggable: false,
-		               modal: true,
-		               width: Math.min(600, jQuery(window).width() - 64),
-		               height: 'auto',
-		               maxHeight: jQuery(window).height(),
-		               close: function(){jQuery(this).remove();}
-		             });
+                       show: '',
+                       hide: 'scale',
+                       title: '$titel_box',
+                       draggable: false,
+                       modal: true,
+                       width: Math.min(600, jQuery(window).width() - 64),
+                       height: 'auto',
+                       maxHeight: jQuery(window).height(),
+                       close: function(){jQuery(this).remove();}
+                     });
     }
 });
 EOT;
 
-               	$_SESSION['nag_screen_shown'] = time();
+                   $_SESSION['nag_screen_shown'] = time();
                 PageLayout::addHeadElement('script', array('type'=>'text/javascript'), $script);
             }
         }
