@@ -27,12 +27,13 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
      */
     function UniZensusPlugin(){
         AbstractStudIPStandardPlugin::AbstractStudIPStandardPlugin();
-        $this->setPluginiconname('images/icon_zensus_neu.gif');
-        $this->setChangeindicatoriconname('images/icon_zensus_neu_changed.gif');
+        $this->setPluginiconname('images/16_white_evaluation.png');
+        $this->setChangeindicatoriconname('images/16_red_new_evaluation.png');
         $this->RPC = new UniZensusRPC();
         if ($this->isVisible()){
             $tab = new PluginNavigation();
             $tab->setDisplayname($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
+            $tab->setActiveImage($this->getPluginUrl() . '/images/16_black_evaluation.png');
             $this->setNavigation($tab);
         }
     }
@@ -42,6 +43,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         if ($this->isVisible()){
             $tab = new PluginNavigation();
             $tab->setDisplayname($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
+            $tab->setActiveImage($this->getPluginUrl() . '/images/16_black_evaluation.png');
             $this->setNavigation($tab);
         }
     }
@@ -81,7 +83,11 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
     }
 
     function isShownInOverview(){
-        return ($GLOBALS['UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW'] && $this->isVisible());
+        if ($GLOBALS['UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW'] && $this->isVisible()) {
+            $this->setPluginiconname('images/16_grey_evaluation.png');
+            return true;
+        }
+
     }
 
     function getOverviewMessage($has_changed = false){
@@ -393,11 +399,11 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             echo chr(10) . '</ul>';
             echo chr(10) . '</p>';
         }*/
-        if (($this->course_status['status']    && strpos($this->course_status['status'], 'error') === false)){
+        if (($this->course_status['status'] && strpos($this->course_status['status'], 'error') === false) || $this->course_status['pdfquestionnaire']) {
             echo chr(10) . '<p>';
             echo chr(10) . $this->getCourseStatusMessage();
             echo chr(10) . '</p>';
-            if ($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['results'] || $this->course_status['noresultsreason']){
+            if ($this->course_status['preview'] || $this->course_status['pdfquestionnaire'] || $this->course_status['questionnaire'] || $this->course_status['results'] || $this->course_status['noresultsreason']){
                 echo chr(10) . '<div style="font-weight:bold;font-size:10pt;border: 1px solid;padding:5px">' . _("Mögliche Aktionen:") . '<div style="font-size:10pt;margin-left:10px">';
                 if ($this->course_status['preview']) {
                     echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('preview',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
