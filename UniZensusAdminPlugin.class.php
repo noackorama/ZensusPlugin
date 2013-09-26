@@ -59,14 +59,15 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
             $this->zensuspluginid = $info['id'];
             if (!$GLOBALS['perm']->have_perm('root')) {
-                if (!in_array(basename($_SERVER['PHP_SELF']), array('plugins.php', 'index.php', 'details.php','logout.php'))) {
-                        header("Location: " . UrlHelper::getUrl('index.php'));
+                if (!in_array(basename($_SERVER['PHP_SELF']), array('plugins.php', 'details.php','logout.php'))) {
+                        header("Location: " . UrlHelper::getUrl('plugins.php/unizensusadminplugin'));
                         page_close();
                         die();
                 }
                 PluginEngine::getPlugins('AdministrationPlugin');
                 PageLayout::addHeadElement('style', array('type'=>'text/css'), '#search_sem_quick_search_1 {visibility: hidden;}
-                                                                                input[name="search_sem_do_search"] {visibility: hidden;}');
+                                                                                input[name="search_sem_do_search"] {visibility: hidden;}
+                                                                                #notification_marker {visibility: hidden;}');
                 Request::set('cid', null);
                 closeObject();
                 foreach(Navigation::getItem('/') as $i => $n) {
