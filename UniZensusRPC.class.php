@@ -6,12 +6,14 @@ class UniZensusRPC {
 
 	var $timeout = 2;
 	var $cache = 240;
+	var $debug = 0;
 
 	/**
 	 *
 	 */
 	function UniZensusRPC(){
 		$this->client = new xmlrpc_client($GLOBALS['UNIZENSUSPLUGIN_XMLRPC_ENDPOINT']);
+		$this->client->setDebug($this->debug);
 	}
 
 	function getCourseStatus($course_id, $user_id = null){
@@ -34,13 +36,18 @@ class UniZensusRPC {
 			                                        new xmlrpcval($hash, "string"),
 													new xmlrpcval($user_id, 'string')));
 		}
+		ob_start();
 		$response = $this->client->send($msg, $this->timeout);
+		$debug = ob_get_clean();
 		if (!$response->faultCode()){
 			$result = php_xmlrpc_decode($response->value());
 		} else {
 			  error_log("UnizensusPlugin: An error occurred \n"
 			  			. "Code: ".$response->faultCode()." \n"
-			  			. "Reason: ".$response->faultString()." \n");
+			  			. "Reason: ".$response->faultString()." \n"
+			            . "course_id:$course_id user_id:$user_id \n"
+			            . $debug);
+
 		}
 		$old_data = $this->getResultFromCache($id, true);
 		$last_changed = $old_data['last_changed'];
