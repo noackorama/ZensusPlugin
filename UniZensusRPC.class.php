@@ -5,7 +5,7 @@ require_once "lib/datei.inc.php";
 class UniZensusRPC {
 
 	var $timeout = 2;
-	var $cache = 240;
+	var $cache = 300;
 	var $debug = 0;
 
 	/**
@@ -64,6 +64,7 @@ class UniZensusRPC {
 	function getEvaluationURL($target, $course_id, $user_id){
 		$tstamp = date('Y-m-d-H-i', time() + 120);
 		$hash = md5($course_id . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $tstamp . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2'] . $user_id . $target);
+		//$hash = hash_hmac('md5', $course_id.$course_id.$target.$tstamp.$user_id, $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2']);
 		$url = $GLOBALS['UNIZENSUSPLUGIN_URL_PREFIX'] . 'app?service=pex/StudIpLoginPage';
 		$url .= "&sp=$tstamp&sp=$hash&sp=$user_id&sp=$target&sp=".$course_id."&sp=$course_id";
 		return $url;
@@ -87,26 +88,6 @@ class UniZensusRPC {
 				$result = unserialize($db->f('data'));
 			}
 		}
-		return $result;
-	}
-
-	function getpdfresults($course_id, $user_id)
-	{
-	    $id = md5('pdfresults' . $course_id . $user_id);
-		if (!is_null( ($cached_result = $this->getResultFromCache($id)) )){
-			return $cached_result;
-		}
-		$result = null;
-	    $url = $this->getEvaluationURL('pdfresults', $course_id, $user_id);
-	    $check = parse_link($url);
-	    if ($check['response_code'] == 302) {
-	        $check = parse_link($check['Location']);
-	    }
-	    if ($check['response_code'] == 200) {
-	        $pdf = file_get_contents($url);
-	        $result = strlen($pdf);
-	        $this->putResultToCache($id, $result);
-	    }
 		return $result;
 	}
 }

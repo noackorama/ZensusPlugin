@@ -245,6 +245,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         if (!$this->isVisible()) return;
         $this->getCourseAndUserStatus();
         $pluginrelativepath = $this->getPluginUrl();
+        $user_id = $GLOBALS['user']->id;
         echo chr(10) . '<div style="padding:10px;background-color:white">';
         /*Uni OL
         if ($GLOBALS['perm']->get_studip_perm($this->getId()) == 'dozent') {
@@ -399,9 +400,13 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             echo chr(10) . '</ul>';
             echo chr(10) . '</p>';
         }*/
+        if ($this->course_status['numvotes'] < 1) $this->course_status['results'] = false;
         if (($this->course_status['status'] && strpos($this->course_status['status'], 'error') === false) || $this->course_status['pdfquestionnaire']) {
             echo chr(10) . '<p>';
             echo chr(10) . $this->getCourseStatusMessage();
+            if ($GLOBALS['perm']->have_studip_perm('dozent', $this->getId()) && $this->course_status['numvotes'] != -1) {
+                echo '<br>' . _("Anzahl der Bewertungen für diese Veranstaltung: ") . $this->course_status['numvotes'];
+            }
             echo chr(10) . '</p>';
             if ($this->course_status['preview'] || $this->course_status['pdfquestionnaire'] || $this->course_status['questionnaire'] || $this->course_status['results'] || $this->course_status['noresultsreason']){
                 echo chr(10) . '<div style="font-weight:bold;font-size:10pt;border: 1px solid;padding:5px">' . _("Mögliche Aktionen:") . '<div style="font-size:10pt;margin-left:10px">';
@@ -420,11 +425,15 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
                     && $GLOBALS['auth']->auth['perm'] != 'root') {
                     echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                     echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
-                    if ($this->course_status['pdfdetailfreetexts']) {
-                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
+                    if ($this->checkResultforUser('pdfdetail', $user_id)) {
+                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetail',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                         echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
                     }
-                    if ($this->course_status['pdfresults']) {
+                    if ($this->checkResultforUser('pdfdetailfreetexts', $user_id)) {
+                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
+                        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung mit Kommentaren) der Evaluation als PDF aufrufen") . '</a></p>';
+                    }
+                    if ($this->checkResultforUser('pdfresults', $user_id)) {
                             echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                             echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
                     }
@@ -436,16 +445,21 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
                     ) {
                     echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                     echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
-                    if ($this->course_status['pdfresults']) {
+                    if ($this->checkResultforUser('pdfresults', $user_id)) {
                         echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                         echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
                     }
                 }
 
-                if ($this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('autor', $this->getId()) && $GLOBALS['auth']->auth['perm'] != 'admin') {
+                if ($this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('autor', $this->getId())) {
                     if($this->course_status['noresultsreason'] == 'wrong phase') {
                         echo chr(10) . '<p>';
                         echo _("Die Auswertung liegt noch nicht vor, da die Evaluation noch läuft.");
+                        echo chr(10) . '</p>';
+                    }
+                    if($this->course_status['noresultsreason'] == 'not public') {
+                        echo chr(10) . '<p>';
+                        echo _("Die Evaluation ist beendet, aber das Ergebnis ist nicht öffentlich.");
                         echo chr(10) . '</p>';
                     }
                     if($this->course_status['noresultsreason'] == 'too few answers') {
@@ -454,34 +468,31 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
                         echo chr(10) . '</p>';
                     }
                 }
-                if($GLOBALS['perm']->have_perm('root')){
+                if($GLOBALS['perm']->have_perm('root') && $this->course_status['results']){
                     foreach(Seminar::getInstance($this->getId())->getMembers('dozent') as $m){
                         echo '<hr>';
                         echo '<h3>' . htmlready($m['Nachname'].', '.$m['Vorname']) . '</h4>';
                         if ($this->course_status['results']) {
-                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$m['user_id'
-                                ]) . '">';
-                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der
-                                Evaluation aufrufen") . '</a></p>';
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$m['user_id']) . '">';
+                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
                         }
-                        if ($this->course_status['pdfdetailfreetexts']) {
-                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$m
-                                ['user_id']) . '">';
-                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die
-                                Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
+                        if ($this->checkResultforUser('pdfdetail', $m['user_id'])) {
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetail',$this->getZensusCourseId(),$m['user_id']) . '">';
+                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
                         }
-                        if ($this->course_status['pdfresults']) {
-                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$m[
-                                'user_id']) . '">';
-                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die
-                                Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
+                        if ($this->checkResultforUser('pdfdetailfreetexts', $m['user_id'])) {
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$m['user_id']) . '">';
+                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung mit Kommentaren) der Evaluation als PDF aufrufen") . '</a></p>';
                         }
-
-                        echo '<hr>';
+                        if ($this->checkResultforUser('pdfresults', $m['user_id'])) {
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$m['user_id']) . '">';
+                            echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
+                        }
                     }
+                    echo '<hr>';
                 }
-                if ($this->course_status['questionnaire']){
-                    if (!$GLOBALS['perm']->have_studip_perm('dozent' , $this->getId())){
+                if ($this->course_status['questionnaire']) {
+                    if (!$GLOBALS['perm']->have_studip_perm('dozent' , $this->getId())) {
                         if (!$this->course_status['pdfquestionnaire']) {
                             echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('questionnaire',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                             echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Den Fragebogen aufrufen und an der Evaluation teilnehmen") . '</a></p>';
@@ -510,10 +521,32 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             $authcode = UserConfig::get($GLOBALS['user']->id)->UNIZENSUSPLUGIN_AUTH_TOKEN;
             $link = UrlHelper::getLink('plugins.php/unizensusadminplugin/export', compact('range_id', 'ex_tstamp', 'ex_hash','authcode','ex_only_visible','cid'));
             printf('<a href="%s" target="_blank">XML Export</a>', $link);
+            if (Request::get('debug')) {
+                echo '<pre>'.print_r($this->course_status,1).'</pre>';
+            }
         }
         echo chr(10) . '</div>';
 
     }
+
+    function checkResultforUser($result_key, $user_id)
+    {
+        if ($this->course_status[$result_key]['type'] == 'course') {
+            return 'course';
+        }
+        foreach($this->course_status['lecturers'] as $k => $v) {
+            if($v['lecturer_id'] == $user_id) {
+                $z_key = $k;
+                break;
+            }
+        }
+        if ($z_key
+            && $this->course_status[$result_key]['type'] == 'personalized'
+            && $this->course_status[$result_key]['content'][$z_key]['available']) {
+            return 'personalized';
+        }
+    }
+
     function display_action($action) {
         PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
         include 'lib/include/html_head.inc.php';
