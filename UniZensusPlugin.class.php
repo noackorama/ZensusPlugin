@@ -98,7 +98,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
     }
 
     function isVisible(){
-        $this->getCourseStatus();
+        $this->getCourseAndUserStatus();
         if ($this->course_status['status']
             && strpos($this->course_status['status'], 'error') === false) {
             $additional_data = self::getAdditionalExportData($this->getId());
@@ -531,16 +531,12 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         if ($this->course_status[$result_key]['type'] == 'course') {
             return 'course';
         }
-        foreach($this->course_status['lecturers'] as $k => $v) {
-            if($v['lecturer_id'] == $user_id) {
-                $z_key = $k;
-                break;
+        if ($this->course_status[$result_key]['type'] == 'personalized') {
+            foreach ((array)$this->course_status[$result_key]['content'] as $k => $v) {
+                if ($v['lecturer_id'] == $user_id && $v['available'] == 1) {
+                    return 'personalized';
+                }
             }
-        }
-        if ($z_key
-            && $this->course_status[$result_key]['type'] == 'personalized'
-            && $this->course_status[$result_key]['content'][$z_key]['available']) {
-            return 'personalized';
         }
     }
 
