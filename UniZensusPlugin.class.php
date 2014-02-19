@@ -291,7 +291,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             echo '<input name="eval_public_stud" id="eval_public_stud" type="checkbox" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) ? 'checked' : '').' >';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
-            echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
+            echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse inklusive der Freitextantworten <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
             , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
