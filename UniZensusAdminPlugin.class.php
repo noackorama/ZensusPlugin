@@ -183,6 +183,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $_SESSION['zensus_admin']['check_eval'] = isset($_REQUEST['check_eval']);
             $_SESSION['zensus_admin']['plugin_activated'] = isset($_REQUEST['plugin_activated']);
             $_SESSION['zensus_admin']['filter_name'] = trim(Request::get('filter_name'));
+            $_SESSION['zensus_admin']['check_deactivated'] = isset($_REQUEST['check_deactivated']);
         }
 
         if(!$_SESSION['_default_sem'] || $_SESSION['_default_sem'] == 'all'){
@@ -271,6 +272,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             &nbsp;<label for="check_eval"><?=_("Evaluation in Zensus aktiviert")?></label>
             </span>
             <span style="margin-left:10px;font-size:10pt;">
+            <input type="checkbox" id="check_deactivated" name="check_deactivated" <?=$_SESSION['zensus_admin']['check_deactivated'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
+            &nbsp;<label for="check_eval"><?=_("Evaluation ist in Zensus deaktiviert")?></label>
+            </span>
+            <span style="margin-left:10px;font-size:10pt;">
             <input type="checkbox" id="plugin_activated" name="plugin_activated" <?=$_SESSION['zensus_admin']['plugin_activated'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
             &nbsp;<label for="plugin_activated"><?=_("Plugin eingeschaltet")?></label>
             </span>
@@ -338,6 +343,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $plugin->getCourseStatus();
                     $plugin->semester_id = $_SESSION['_default_sem'] ? $_SESSION['_default_sem'] : null;
                     if($_SESSION['zensus_admin']['check_eval'] && !in_array($plugin->course_status['status'], array('prepare','run','analyze','finished'))){
+                        unset($data[$seminar_id]);
+                        continue;
+                    }
+                    if($_SESSION['zensus_admin']['check_deactivated'] && in_array($plugin->course_status['status'], array('prepare','run','analyze','finished'))){
                         unset($data[$seminar_id]);
                         continue;
                     }
@@ -470,19 +479,20 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $ret = array();
         list($institut_id, $all) = explode('_', $_SESSION['zensus_admin']['institut_id']);
         if ($institut_id == "all"  && $perm->have_perm("root"))
-            $query = "SELECT Name,Seminar_id as seminar_id, VeranstaltungsNummer, visible FROM seminare WHERE 1 $seminare_condition ORDER BY Name";
+            $query = "SELECT Name,Seminar_id as seminar_id, VeranstaltungsNummer, visible FROM seminare WHERE 1 $seminare_condition ORDER BY VeranstaltungsNummer,Name";
         elseif ($all == 'all')
             $query = "SELECT seminare.Name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer, seminare.visible FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
         INNER JOIN Institute ON seminar_inst.institut_id = Institute.Institut_id WHERE Institute.fakultaets_id  = '{$institut_id}' $seminare_condition
-        GROUP BY seminare.Seminar_id ORDER BY Name";
+        GROUP BY seminare.Seminar_id ORDER BY VeranstaltungsNummer,Name";
         else
         $query = "SELECT seminare.Name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer, seminare.visible FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
         WHERE seminar_inst.institut_id = '{$institut_id}' $seminare_condition
-        GROUP BY seminare.Seminar_id ORDER BY Name";
+        GROUP BY seminare.Seminar_id ORDER BY VeranstaltungsNummer,Name";
         $db->query($query);
         while($db->next_record()){
             $seminar_id = $db->f("seminar_id");
             $ret[$seminar_id] = $db->Record;
+            $ret[$seminar_id]['Name'] = $ret[$seminar_id]['VeranstaltungsNummer'] . ' ' . $ret[$seminar_id]['Name'];
             $query2 = "SELECT seminar_user.user_id,username,Nachname FROM seminar_user LEFT JOIN auth_user_md5 USING (user_id) WHERE seminar_id='$seminar_id' AND status='dozent' ORDER BY position,Nachname";
             $db2->query($query2);
             $c = 0;

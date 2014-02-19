@@ -316,7 +316,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
-            echo '<tr><td>';
+            /*echo '<tr><td>';
             echo '&nbsp;';
             echo '</td><td align="center">';
             echo '2.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 1 ? 'checked' : '').' >';
@@ -325,11 +325,11 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) <b>an die Studiendekanin bzw. den Studiendekan</b> bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
             , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
-            echo '</td></tr>';
+            echo '</td></tr>';*/
             echo '<tr><td>';
             echo '&nbsp;';
             echo '</td><td align="center">';
-            echo '3.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="2" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 2 ? 'checked' : '').' >';
+            echo '2.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 1 ? 'checked' : '').' >';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) <b>an die Studiendekanin bzw. den Studiendekan und die Evaluationsbeauftragte bzw. den Evaluationsbeauftragten</b> bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
