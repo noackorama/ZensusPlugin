@@ -235,7 +235,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         }
         $ret['eval_public'] = min($eval_public);
         $ret['eval_stored'] = array_sum($eval_stored) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
-        $ret['eval_public_stud'] = array_sum($eval_public_stud) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
+        $ret['eval_public_stud'] = min($eval_public_stud);
         return $ret;
     }
 
@@ -280,20 +280,47 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
                 foreach($lehrende as $l) {
                     echo '<li>';
                     echo htmlReady($l['Nachname'] . ', '. $l['Vorname'][0] . '.');
-                    echo '&nbsp;(' . (self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $l['user_id']) ? 'Ja' : 'Nein') . ')';
+                    echo '&nbsp;(' . (self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $l['user_id']) + 1) . ')';
                     echo '</li>';
                 }
                 echo '</ul>';
             }
-            echo '</td><td align="center">';
-            echo '<input name="eval_public_stud" id="eval_public_stud" type="checkbox" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) ? 'checked' : '').' >';
+            echo '</td><td align="center" nowrap>';
+            echo '1.&nbsp;<input style="vertical-align:bottom" name="eval_public_stud" id="eval_public_stud" type="radio" value="0" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) == 0 ? 'checked' : '').' >';
+            echo '</td><td>';
+            echo '<div style="font-style:italic; padding-left: 10px;">';
+            echo sprintf(_("Keine Ergebnisweiterleitung.")
+            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+            echo '</div>';
+            echo '</td></tr>';
+            echo '<tr><td>';
+            echo '&nbsp;';
+            echo '</td><td align="center" nowrap>';
+            echo '2.&nbsp;<input style="vertical-align:bottom" name="eval_public_stud" id="eval_public_stud" type="radio" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) == 1 ? 'checked' : '').' >';
+            echo '</td><td>';
+            echo '<div style="font-style:italic; padding-left: 10px;">';
+            echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse <u>inklusive</u> der Freitextantworten <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
+            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+            echo '</div>';
+            echo '</td></tr>';
+            echo '<tr><td>';
+            echo '&nbsp;';
+            echo '</td><td align="center" nowrap>';
+            echo '3.&nbsp;<input style="vertical-align:bottom" name="eval_public_stud" id="eval_public_stud" type="radio" value="2" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) == 2 ? 'checked' : '').' >';
+            echo '</td><td>';
+            echo '<div style="font-style:italic; padding-left: 10px;">';
+            echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse <u>ohne</u> die Freitextantworten <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
+            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+            echo '</div>';
+            echo '</td></tr>';
+            /*echo '<input name="eval_public_stud" id="eval_public_stud" type="checkbox" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) ? 'checked' : '').' >';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse inklusive der Freitextantworten <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
             , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
-
+            */
             echo '<tr><td colspan="3"><hr></td></tr>';
 
             echo '<tr><td>';
@@ -308,7 +335,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
                 }
                 echo '</ul>';
             }
-            echo '</td><td align="center">';
+            echo '</td><td align="center" nowrap>';
             echo '1.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="0" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 0 ? 'checked' : '').' >';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
@@ -316,19 +343,9 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
-            /*echo '<tr><td>';
-            echo '&nbsp;';
-            echo '</td><td align="center">';
-            echo '2.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 1 ? 'checked' : '').' >';
-            echo '</td><td>';
-            echo '<div style="font-style:italic; padding-left: 10px;">';
-            echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) <b>an die Studiendekanin bzw. den Studiendekan</b> bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
-            echo '</div>';
-            echo '</td></tr>';*/
             echo '<tr><td>';
             echo '&nbsp;';
-            echo '</td><td align="center">';
+            echo '</td><td align="center" nowrap>';
             echo '2.&nbsp;<input style="vertical-align:bottom" name="eval_public" id="eval_public" type="radio" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id) == 1 ? 'checked' : '').' >';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
@@ -393,7 +410,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             echo $additional_data['eval_stored'] ? _("Ja") : _("Nein");
             echo chr(10) . '</li>';
             echo chr(10) . '<li>' . _("Ergebnisweiterleitung an Studierende") . ': ';
-            echo $additional_data['eval_public_stud'] ? _("Ja") : _("Nein");
+            echo $additional_data['eval_public_stud'];
             echo chr(10) . '</li>';
             echo chr(10) . '</ul>';
             echo chr(10) . '</p>';
