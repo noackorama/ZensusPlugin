@@ -616,4 +616,12 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         }
         zensus_export_range($range_id, $ex_sem, 'direct',$auth_uid);
     }
+
+    public static function onEnable($plugin_id)
+    {
+        //allow for nobody
+        $rp = new RolePersistence();
+        $rp->assignPluginRoles($plugin_id, range(1,7));
+    }
+
 }
