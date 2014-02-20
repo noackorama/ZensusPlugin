@@ -561,7 +561,8 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
 
     function checkResultforUser($result_key, $user_id)
     {
-        if ($this->course_status[$result_key]['type'] == 'course') {
+        if ($this->course_status[$result_key]['type'] == 'course'
+            && $this->course_status[$result_key]['content'][0]['available'] == 1) {
             return 'course';
         }
         if ($this->course_status[$result_key]['type'] == 'personalized') {
