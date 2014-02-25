@@ -91,5 +91,3 @@ class UniZensusRPC {
 		return $result;
 	}
 }
-?>
-
