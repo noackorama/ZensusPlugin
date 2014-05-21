@@ -70,6 +70,9 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         if (!$user_id) {
             $user_id = $GLOBALS['user']->id;
         }
+        if ($user_id === 'nobody') {
+            return false;
+        }
         if ($GLOBALS['perm']->get_perm($user_id) == 'root') {
             return true;
         }
