@@ -97,6 +97,9 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
     }
 
     function isVisible(){
+        if ($GLOBALS['perm']->get_studip_perm($this->getId()) === 'tutor') {
+            return false;
+        }
         $this->getCourseAndUserStatus();
         if ($this->course_status['status']
             && strpos($this->course_status['status'], 'error') === false) {
