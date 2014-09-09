@@ -119,6 +119,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $cols[] = array(5,_("Zensus Status"),'zensus_status');
         $cols[] = array(5,_("&sum; Zensus"),'zensus_numvotes');
         $cols[] = array(5,_("Plugin aktiv"),'plugin_activated');
+        $cols[] = array(5,_("Ergebnis Studierende"),'eval_public_stud');
         $cols[] = array(10,_("Startzeit manuell"),'begin_evaluation');
         $cols[] = array(10,_("Endzeit manuell"),'end_evaluation');
         $cols[] = array(10,_("Startzeit automatisch"),'time_frame_begin');
@@ -266,6 +267,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             &nbsp;<label for="plugin_activated"><?=_("Plugin eingeschaltet")?></label>
             </span>
             </div>
+            <div style="font-size:10pt;margin:10px;">
+            <b><?=_("Angezeigte Veranstaltungen exportieren:")?></b>
+            <?= \Studip\Button::create(_("Export"), 'export'); ?>
+            </div>
             </form>
             <hr>
             <?
@@ -353,6 +358,32 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             if($_SESSION['zensus_admin']['sortby']['field'] && count($data) && count($data) == count($sorter)){
                 array_multisort($sorter, ($_SESSION['zensus_admin']['sortby']['direction'] ? SORT_ASC : SORT_DESC), $data);
             }
+            if (Request::submitted('export')) {
+                ob_end_clean();
+                $captions = array('Veranstaltung', 'Dozenten', 'Teilnehmer Stud.IP', 'Zensus Status', 'Teilnehmer Zensus', 'Plugin aktiv', 'Ergebnisweiterleitung Studierende', 'Ergebnis speichern', 'Ergebnisweiterleitung Studiendekan', 'Startzeit','Endzeit');
+                $csvdata = array();
+                $c = 0;
+                foreach($data as $seminar_id => $semdata) {
+                    $csvdata[$c][] = $semdata['Name'];
+                    $csvdata[$c][] = $semdata['dozenten'];
+                    $csvdata[$c][] = $semdata['teilnehmer_anzahl_aktuell'];
+                    $csvdata[$c][] = $semdata['zensus_status'];
+                    $csvdata[$c][] = (int)$semdata['zensus_numvotes'];
+                    $csvdata[$c][] = $semdata['plugin_activated'] ? 'ja' : 'nein';
+                    $csvdata[$c][] = $semdata['eval_public_stud'];
+                    $csvdata[$c][] = $semdata['eval_stored'] ? 'ja' : 'nein';
+                    $csvdata[$c][] = $semdata['eval_public'];
+                    $csvdata[$c][] = $semdata['begin_evaluation'] ? date("d.m.Y", $semdata['begin_evaluation']) : ($semdata['time_frame_begin'] ? date("d.m.Y", $semdata['time_frame_begin']) : '');
+                    $csvdata[$c][] = $semdata['end_evaluation'] ? date("d.m.Y", $semdata['end_evaluation']) : ($semdata['time_frame_end'] ? date("d.m.Y", $semdata['time_frame_end']) : '');
+                    ++$c;
+                }
+                $tmpname = md5(uniqid('tmp'));
+                if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
+                    header('Location: ' . GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation.csv', 4, 'force'));
+                    page_close();
+                    die();
+                }
+            }
             $semlink = $GLOBALS['perm']->have_studip_perm('admin', $_SESSION['zensus_admin']['institut_id']) ? 'seminar_main.php?auswahl=' : 'details.php?sem_id=';
             foreach($data as $seminar_id => $semdata) {
                 $sem = new Seminar($seminar_id);
@@ -376,6 +407,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     <td align=\"center\">%s</td>
                     <td align=\"center\">%s</td>
                     <td align=\"center\">%s</td>
+                    <td align=\"center\">%s</td>
                     ",
                     htmlready($dates),
                     UrlHelper::getLink($semlink.$seminar_id),
@@ -387,6 +419,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $semdata['link'],
                     htmlReady($semdata['zensus_numvotes']),
                     ($semdata['plugin_activated'] ? 'ja' : 'nein') ,
+                    $semdata['eval_public_stud'] ,
                     $semdata['begin_evaluation'] ? date("d.m.Y", $semdata['begin_evaluation']) : '-',
                     $semdata['end_evaluation'] ? date("d.m.Y", $semdata['end_evaluation']) : '-',
                     ($semdata['time_frame_begin'] ? date("d.m.Y", $semdata['time_frame_begin']) : '-'),
@@ -510,6 +543,11 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             while($db2->next_record()){
                 $ret[$seminar_id]['activated_by_' . $db2->f('activated_by')] = $db2->f('state');
             }
+            $ret[$seminar_id] = array_merge($ret[$seminar_id], UniZensusPlugin::getAdditionalExportData($seminar_id));
+            if ($ret[$seminar_id]['eval_participants']) {
+                $ret[$seminar_id]['teilnehmer_anzahl_aktuell'] = $ret[$seminar_id]['eval_participants'];
+            }
+            unset($ret[$seminar_id]['eval_participants']);
         }
         return $ret;
     }
