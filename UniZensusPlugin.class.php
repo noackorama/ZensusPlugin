@@ -269,7 +269,7 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
             echo '<input name="eval_participants" id="eval_participants" value="'.self::getDatafieldValue(self::$datafield_id_teilnehmer, $this->getID()).'" type="text" size="2">';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
-            echo sprintf(_("Diese Teilnehmeranzahl wird zur Auswertung der Evaluation herangezogen. Wenn Sie keinen Wert eingeben, wird die Anzahl der Teilnehmer aus Stud.IP benutzt (zur Zeit: %s).")
+            echo sprintf(_("Diese Teilnehmeranzahl wird zur Auswertung der Evaluation herangezogen. Wenn Sie einen neuen Wert eingeben, wird Ihnen dieser nach einer nächtlichen Aktualisierung der Daten am nächsten Tag in dem Ergebnis-PDF angezeigt. Wenn Sie keinen anderen Wert eingeben, wird die Anzahl der Teilnehmer aus Stud.IP benutzt (zur Zeit: %s).")
                     , count(Seminar::getInstance($this->getId())->getMembers('autor')));
             echo '</div>';
             echo '</td></tr>';
