@@ -1,18 +1,17 @@
 <?php
 require_once "UniZensusRPC.class.php";
-require_once "lib/classes/Seminar.class.php";
 
-
-class UniZensusPlugin extends AbstractStudIPStandardPlugin {
-
-    var $is_not_activatable = true;
+class UniZensusPlugin extends StudipPlugin implements StandardPlugin
+{
 
     public static $datafield_id_teilnehmer = '02cbd6d7113a78778747f057316a2068';
     public static $datafield_id_auswertung_oeffentlich = '1e074f09e8394e0937f6286379b6f6cc';
     public static $datafield_id_auswertung_speichern = 'da9abc75739eb0d567e8dcf19668320f';
     public static $datafield_id_auswertung_studierende = '6c691ebe8c034f77a2cf643efce811c9';
 
-    function SQLDateToTimestamp($sqldate){
+    private $id;
+
+    static function SQLDateToTimestamp($sqldate){
         $date_values = explode("-", $sqldate); //YYYY-MM-DD
         if (checkdate((int)$date_values[1],(int)$date_values[2],(int)$date_values[0])){
             return mktime(0,0,0,$date_values[1],$date_values[2],$date_values[0], 0);
@@ -21,30 +20,54 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         }
     }
 
+
     /**
      *
      */
-    function UniZensusPlugin(){
-        AbstractStudIPStandardPlugin::AbstractStudIPStandardPlugin();
-        $this->setPluginiconname('images/16_white_evaluation.png');
-        $this->setChangeindicatoriconname('images/16_red_new_evaluation.png');
+    function __construct()
+    {
+        parent::__construct();
         $this->RPC = new UniZensusRPC();
-        if ($this->isVisible()){
-            $tab = new PluginNavigation();
-            $tab->setDisplayname($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
-            $tab->setActiveImage($this->getPluginUrl() . '/images/16_black_evaluation.png');
-            $this->setNavigation($tab);
+
+    }
+
+    function getIconNavigation($course_id, $last_visit, $user_id)
+    {
+        $this->setId($course_id);
+        if ($GLOBALS['UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW'] && $this->isVisible()) {
+            $has_changed = $this->hasChanged($last_visit);
+            $message = $this->getOverviewMessage($has_changed);
+            $nav = new Navigation($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'], PluginEngine::getUrl($this),array(),'show');
+            $nav->setImage($has_changed ? 'icons/20/red/evaluation' : 'icons/20/black/evaluation', array('title' => $message));
+            return $nav;
         }
+    }
+
+    function getTabNavigation($course_id)
+    {
+        $this->setId($course_id);
+        if ($this->isVisible()) {
+            $tab = new Navigation($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'], PluginEngine::getUrl($this),array(),'show');
+            $tab->setActiveImage(Assets::image_path('icons/16/black/evaluation'));
+            $tab->setImage(Assets::image_path('icons/16/white/evaluation'));
+            return array(get_class($this) => $tab);
+        }
+    }
+
+    function getNotificationObjects($course_id, $since, $user_id)
+    {
+    }
+    function getInfoTemplate($course_id)
+    {
     }
 
     function setId($id) {
         $this->id = $id;
-        if ($this->isVisible()){
-            $tab = new PluginNavigation();
-            $tab->setDisplayname($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
-            $tab->setActiveImage($this->getPluginUrl() . '/images/16_black_evaluation.png');
-            $this->setNavigation($tab);
-        }
+    }
+
+    function getId()
+    {
+        return $this->id;
     }
 
     function getZensusCourseId(){
@@ -81,14 +104,6 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         }
     }
 
-    function isShownInOverview(){
-        if ($GLOBALS['UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW'] && $this->isVisible()) {
-            $this->setPluginiconname('images/16_grey_evaluation.png');
-            return true;
-        }
-
-    }
-
     function getOverviewMessage($has_changed = false){
         if (!$GLOBALS['perm']->have_studip_perm('dozent', $this->getId())){
             if($this->course_status['questionnaire'] == true) return _("Den Fragebogen aufrufen und an der Evaluation teilnehmen"); if($this->course_status['status'] == 'run') return _("Sie haben an dieser Evaluation bereits teilgenommen!");
@@ -96,7 +111,10 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         return $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'] . ': ' .$this->getCourseStatusMessage() . ($has_changed ? ' (' . _("geändert"). ')' : '');
     }
 
-    function isVisible(){
+    function isVisible() {
+        if (!$this->isActivated($this->getId())) {
+            return false;
+        }
         if ($GLOBALS['perm']->get_studip_perm($this->getId()) === 'tutor') {
             return false;
         }
@@ -124,17 +142,13 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         else return false;
     }
 
-    function hasChanged($lastviewed){
+    function hasChanged($lastviewed) {
         $this->getCourseAndUserStatus();
         if ($GLOBALS['perm']->have_studip_perm('dozent', $this->getId())){
             return $this->course_status['last_changed'] > $lastviewed;
         } else {
             return $this->course_status['questionnaire'] == true;
         }
-    }
-
-    function getChangeMessages($lastlogin, $ids){
-        return array();
     }
 
     function getCourseStatusMessage(){
@@ -242,8 +256,12 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         return $ret;
     }
 
-    function show($args){
+    function show_action()
+    {
         if (!$this->isVisible()) return;
+        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
+        Navigation::activateItem('/course/' . get_class($this));
+        ob_start();
         $this->getCourseAndUserStatus();
         $pluginrelativepath = $this->getPluginUrl();
         $user_id = $GLOBALS['user']->id;
@@ -555,6 +573,9 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
         }
         echo chr(10) . '</div>';
 
+        $layout = $GLOBALS['template_factory']->open('layouts/base.php');
+        $layout->content_for_layout = ob_get_clean();
+        echo $layout->render();
     }
 
     function isAnyResultAvailable($user_id) {
@@ -581,15 +602,6 @@ class UniZensusPlugin extends AbstractStudIPStandardPlugin {
                 }
             }
         }
-    }
-
-    function display_action($action) {
-        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
-        include 'lib/include/html_head.inc.php';
-        include 'lib/include/header.php';
-        $this->$action();
-        include 'lib/include/html_end.inc.php';
-        page_close();
     }
 }
 ?>

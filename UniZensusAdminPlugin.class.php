@@ -182,7 +182,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
 
-        if (Request::submitted('choose_institut')) {
+        if (Request::submitted('choose_institut') || Request::submitted('export')) {
             $_SESSION['_default_sem'] = Request::option('select_sem', $_SESSION['_default_sem']);
             $_SESSION['zensus_admin']['check_eval'] = isset($_REQUEST['check_eval']);
             $_SESSION['zensus_admin']['plugin_activated'] = isset($_REQUEST['plugin_activated']);
