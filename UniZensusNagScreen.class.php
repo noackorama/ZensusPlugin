@@ -4,7 +4,7 @@ class UniZensusNagScreen extends StudIPPlugin implements SystemPlugin
     function __construct()
     {
         parent::__construct();
-        if (!$GLOBALS['perm']->have_perm('dozent') && in_array(basename($_SERVER['PHP_SELF']), array('meine_seminare.php'))
+        if (!$GLOBALS['perm']->have_perm('dozent') && match_route('dispatch.php/my_courses')
             && (time() - $_SESSION['nag_screen_shown']) > (24*60*60)
         ) {
             $user_id = $GLOBALS['user']->id;
@@ -15,6 +15,7 @@ class UniZensusNagScreen extends StudIPPlugin implements SystemPlugin
             $script = <<<EOT
 jQuery('document').ready(function(){
     if(jQuery('img[title="Den Fragebogen aufrufen und an der Evaluation teilnehmen"]').length > 0 && jQuery('#UniZensusNagScreenDialogbox').length == 0) {
+    STUDIP.UniZensusNagScreen = {};
     STUDIP.UniZensusNagScreen.dialog = jQuery('<div id="UniZensusNagScreenDialogbox"><img style="padding: 5px" src="$img_url" align="right"><span>' + '$content_box' + '</span></div>').dialog({
                        show: '',
                        hide: 'scale',
