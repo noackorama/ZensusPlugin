@@ -280,7 +280,7 @@ function zensus_export_inst($inst_id, $ex_sem_id = "all", $o_mode = 'direct')
             $data_object .= zensus_xmltag($xml_groupnames_inst["childobject"], $db->f("Name"), array('key' => $db->f('Institut_id')));
     }
     // freie Datenfelder ausgeben
-    $data_object .= zensus_export_datafields($inst_id, $xml_groupnames_inst["childgroup2"], $xml_groupnames_inst["childobject2"]);
+    $data_object .= zensus_export_datafields($inst_id, $xml_groupnames_inst["childgroup2"], $xml_groupnames_inst["childobject2"], 'inst');
     zensus_output_data( $data_object, $o_mode );
     $data_object = "";
 

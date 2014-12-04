@@ -7,9 +7,9 @@ class InitPlugin extends DBMigration
 		`data` MEDIUMBLOB NOT NULL ,
 		`chdate` INT UNSIGNED NOT NULL ,
 		PRIMARY KEY ( `id` )
-		) TYPE = MYISAM ");
+		) ENGINE = MYISAM ");
 		DBManager::get()->exec("INSERT IGNORE INTO `config` ( `config_id` , `parent_id` , `field` , `value` , `is_default` , `type` , `range` , `section` , `position` , `mkdate` , `chdate` , `description` , `comment` , `message_template` )
-VALUES 
+VALUES
 (
 MD5( 'UNIZENSUSPLUGIN_SHARED_SECRET1' ) , '', 'UNIZENSUSPLUGIN_SHARED_SECRET1', 'geheim1', '1', 'string', 'global', '', '1', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Mit Unizensus geteiltes Geheimnis Teil 1', '', ''
 ),
@@ -37,7 +37,7 @@ MD5( 'UNIZENSUSPLUGIN_END_EVALUATION' ) , '', 'UNIZENSUSPLUGIN_END_EVALUATION', 
 		DBManager::get()->exec("INSERT IGNORE INTO datafields (datafield_id, name, object_type, object_class, edit_perms, view_perms, priority, mkdate, chdate) VALUES (MD5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), 'Beginn des Lehrevaluationszeitraums (YYYY-MM-DD)', 'sem', NULL, 'root', 'root', 0, NULL, NULL),
 (MD5('UNIZENSUSPLUGIN_END_EVALUATION'), 'Ende des Lehrevaluationszeitraums (YYYY-MM-DD)', 'sem', NULL, 'root', 'root', 1, NULL, NULL)");
 	}
-	
+
 	function down()
 	{
 		DBManager::get()->exec("DELETE FROM `config` WHERE `field`
@@ -47,5 +47,5 @@ IN('UNIZENSUSPLUGIN_SHARED_SECRET1', 'UNIZENSUSPLUGIN_SHARED_SECRET2', 'UNIZENSU
 		DBManager::get()->exec("DELETE FROM `datafields_entries` WHERE `datafield_id` IN (MD5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'),MD5('UNIZENSUSPLUGIN_END_EVALUATION'))");
 		DBManager::get()->exec("DROP TABLE IF EXISTS `unizensusplugincache`");
 	}
-	
+
 }
