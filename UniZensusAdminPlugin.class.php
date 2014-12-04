@@ -471,7 +471,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $db->query("SELECT a.Institut_id,b.Name, IF(b.Institut_id=b.fakultaets_id,1,0) AS is_fak,count(seminar_id) AS num_sem FROM user_inst a LEFT JOIN Institute b USING (Institut_id)
                 LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE a.user_id='$user->id' AND a.inst_perms='admin' GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         }
-        */
         while($db->next_record()){
             $_my_inst[$db->f("Institut_id")] = array("name" => $db->f("Name"), "is_fak" => $db->f("is_fak"), "num_sem" => $db->f("num_sem"));
             if ($db->f("is_fak")){
@@ -620,7 +619,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         $range_id = Request::option('range_id', 'root');
-        $ex_only_visible = Request::int('ex_only_visible', 1);
+        $ex_only_visible = Request::int('ex_only_visible', 0);
         $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
         $ex_sem_class = Request::intArray('ex_sem_class');
         if (!count($ex_sem_class)) $ex_sem_class[] = 1;
@@ -634,7 +633,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             echo zensus_xmltag('studip_export_error_msg', strip_tags($export_error));
             exit();
         }
-        zensus_export_range($range_id, $ex_sem, 'direct', $this->hasPermission($auth_uid) ? false : $auth_uid);
+        zensus_export_range($range_id, $ex_sem, 'direct');
     }
 
     public static function onEnable($plugin_id)
