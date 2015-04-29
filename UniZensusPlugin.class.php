@@ -105,6 +105,13 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         }
     }
 
+    function getOverviewMessage($has_changed = false){
+        if (!$GLOBALS['perm']->have_studip_perm('dozent', $this->getId())){
+            if($this->course_status['questionnaire'] == true) return _("Den Fragebogen aufrufen und an der Evaluation teilnehmen"); if($this->course_status['status'] == 'run') return _("Sie haben an dieser Evaluation bereits teilgenommen!");
+        }
+        return $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'] . ': ' .$this->getCourseStatusMessage() . ($has_changed ? ' (' . _("geändert"). ')' : '');
+    }
+
     function isVisible() {
         if (!$this->isActivated($this->getId())) {
             return false;
