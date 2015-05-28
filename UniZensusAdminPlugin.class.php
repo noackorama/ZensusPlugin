@@ -44,7 +44,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
         if ($this->hasPermission()) {
             $navigation = new Navigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
-            if (basename($_SERVER['PHP_SELF']) == 'plugins.php') {
+            if (strpos(get_route(),'unizensusadminplugin') !== false) {
 
                 //Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
                 $token_navigation = new Navigation(_("Export Token"), PluginEngine::getLink($this, array(), 'token'));
