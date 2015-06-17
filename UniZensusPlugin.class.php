@@ -122,18 +122,19 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if ($this->course_status['status']
             && strpos($this->course_status['status'], 'error') === false) {
             $additional_data = self::getAdditionalExportData($this->getId());
+            $results_available = $this->isAnyResultAvailable($GLOBALS['user']->id);
         }
         if (
             ($this->course_status['status']
             && strpos($this->course_status['status'], 'error') === false
-            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['pdfdetailfreetexts']
+            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $results_available
                 ) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
                 )
             && (!isset($this->course_status['time_frame'])
                 || ($this->course_status['time_frame']['begin'] < time()
                     && $this->course_status['time_frame']['end'] > time()
                     )
-                || $additional_data['eval_public_stud']
+                || ($additional_data['eval_public_stud'] && $results_available)
                 )
             )
             || $GLOBALS['perm']->have_perm('admin')
