@@ -32,6 +32,10 @@ require_once "lib/classes/StudipForm.class.php";
 require_once "UniZensusPlugin.class.php";
 require_once 'zensus_xml_func.php';   // XML-Funktionen
 
+if (!function_exists('get_route')) {
+    include 'get_route.php';
+}
+
 class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
     private $user_is_eval_admin;
