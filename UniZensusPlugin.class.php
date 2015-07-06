@@ -8,6 +8,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static $datafield_id_auswertung_oeffentlich = '1e074f09e8394e0937f6286379b6f6cc';
     public static $datafield_id_auswertung_speichern = 'da9abc75739eb0d567e8dcf19668320f';
     public static $datafield_id_auswertung_studierende = '6c691ebe8c034f77a2cf643efce811c9';
+    public static $datafield_id_fol = '';
+    public static $datafield_id_flif = '';
 
     private $id;
 
@@ -245,6 +247,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static function getAdditionalExportData($seminar_id)
     {
         $eval_public = $eval_stored =  $eval_public_stud = array();
+        $ret['fol_course'] = (int)self::getDatafieldValue(self::$datafield_id_fol, $seminar_id);
+        $ret['flif_course'] = (int)self::getDatafieldValue(self::$datafield_id_flif, $seminar_id);
         $ret['eval_participants'] = self::getDatafieldValue(self::$datafield_id_teilnehmer, $seminar_id);
         foreach(Seminar::getInstance($seminar_id)->getMembers('dozent') as $dozent) {
             $eval_public[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $seminar_id, $dozent['user_id']);

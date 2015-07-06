@@ -352,7 +352,6 @@ function zensus_export_sem($inst_id, $ex_sem_id = "all", $o_mode = 'direct')
     global $xml_file, $xml_names_lecture, $xml_groupnames_lecture, $SEM_TYPE, $SEM_CLASS, $persons;
     global $ex_sem, $ex_only_homeinst,$ex_sem_class, $ex_only_visible;
 
-
     $db=new DB_Seminar;
     $db2=new DB_Seminar;
     $db3=new DB_Seminar;

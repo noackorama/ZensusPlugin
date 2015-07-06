@@ -594,6 +594,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         if ($key == 'resultstore') {
             return zensus_xmltag($key, (int)$data[$seminar_id]['eval_stored']);
         }
+        return zensus_xmltag($key, $data[$seminar_id][$key]);
     }
 
     function export_action()
@@ -611,7 +612,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $xml_names_lecture['teilnehmer_anzahl_aktuell'] = array($this, 'getExportData');
         $xml_names_lecture['resultpublic'] = array($this, 'getExportData');
         $xml_names_lecture['resultstore'] = array($this, 'getExportData');
-
+        $xml_names_lecture['flif_course'] = array($this, 'getExportData');
+        $xml_names_lecture['fol_course'] = array($this, 'getExportData');
 
         $authcode = Request::option('authcode');
         if ($authcode) {
