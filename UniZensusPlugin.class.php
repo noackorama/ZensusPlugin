@@ -8,8 +8,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static $datafield_id_auswertung_oeffentlich = '1e074f09e8394e0937f6286379b6f6cc';
     public static $datafield_id_auswertung_speichern = 'da9abc75739eb0d567e8dcf19668320f';
     public static $datafield_id_auswertung_studierende = '6c691ebe8c034f77a2cf643efce811c9';
-    public static $datafield_id_fol = '';
-    public static $datafield_id_flif = '';
+    public static $datafield_id_fol = '71d3f2e6ba39e4a2bc2f8551bd599b64';
+    public static $datafield_id_flif = 'f298887055ee46a0ab6ac525647aeac1';
 
     private $id;
 
