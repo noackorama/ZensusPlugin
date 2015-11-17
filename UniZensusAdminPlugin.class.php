@@ -32,6 +32,10 @@ require_once "lib/classes/StudipForm.class.php";
 require_once "UniZensusPlugin.class.php";
 require_once 'zensus_xml_func.php';   // XML-Funktionen
 
+if (!function_exists('get_route')) {
+    include 'get_route.php';
+}
+
 class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
     private $user_is_eval_admin;
@@ -44,7 +48,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
         if ($this->hasPermission()) {
             $navigation = new Navigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
-            if (basename($_SERVER['PHP_SELF']) == 'plugins.php') {
+            if (strpos(get_route(),'unizensusadminplugin') !== false) {
 
                 //Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
                 $token_navigation = new Navigation(_("Export Token"), PluginEngine::getLink($this, array(), 'token'));
@@ -219,7 +223,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 }
             }
         }
-
         $_my_inst = $this->getInstitute($sem_condition);
         if (is_array($_my_inst)){
             $_my_inst_arr = array_keys($_my_inst);
@@ -381,7 +384,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
             if (Request::submitted('export')) {
                 ob_end_clean();
-                $captions = array('Veranstaltung', 'Dozenten', 'Teilnehmer Stud.IP', 'Zensus Status', 'Teilnehmer Zensus', 'Plugin aktiv', 'Ergebnisweiterleitung Studierende', 'Ergebnis speichern', 'Ergebnisweiterleitung Studiendekan', 'Startzeit','Endzeit');
+                $captions = array('Veranstaltung', 'Dozenten', 'Teilnehmer Stud.IP', 'Zensus Status', 'Teilnehmer Zensus', 'Plugin aktiv', 'Startzeit','Endzeit');
                 $csvdata = array();
                 $c = 0;
                 foreach($data as $seminar_id => $semdata) {
@@ -391,9 +394,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $csvdata[$c][] = $semdata['zensus_status'];
                     $csvdata[$c][] = (int)$semdata['zensus_numvotes'];
                     $csvdata[$c][] = $semdata['plugin_activated'] ? 'ja' : 'nein';
-                    $csvdata[$c][] = $semdata['eval_public_stud'];
-                    $csvdata[$c][] = $semdata['eval_stored'] ? 'ja' : 'nein';
-                    $csvdata[$c][] = $semdata['eval_public'];
                     $csvdata[$c][] = $semdata['begin_evaluation'] ? date("d.m.Y", $semdata['begin_evaluation']) : ($semdata['time_frame_begin'] ? date("d.m.Y", $semdata['time_frame_begin']) : '');
                     $csvdata[$c][] = $semdata['end_evaluation'] ? date("d.m.Y", $semdata['end_evaluation']) : ($semdata['time_frame_end'] ? date("d.m.Y", $semdata['time_frame_end']) : '');
                     ++$c;
