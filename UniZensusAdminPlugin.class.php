@@ -32,6 +32,10 @@ require_once "lib/classes/StudipForm.class.php";
 require_once "UniZensusPlugin.class.php";
 require_once 'zensus_xml_func.php';   // XML-Funktionen
 
+if (!function_exists('get_route')) {
+    include 'get_route.php';
+}
+
 class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
     private $user_is_eval_admin;
@@ -44,7 +48,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
         if ($this->hasPermission()) {
             $navigation = new Navigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
-            if (basename($_SERVER['PHP_SELF']) == 'plugins.php') {
+            if (strpos(get_route(),'unizensusadminplugin') !== false) {
 
                 //Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
                 $token_navigation = new Navigation(_("Export Token"), PluginEngine::getLink($this, array(), 'token'));
@@ -219,7 +223,6 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 }
             }
         }
-
         $_my_inst = $this->getInstitute($sem_condition);
         if (is_array($_my_inst)){
             $_my_inst_arr = array_keys($_my_inst);
@@ -661,7 +664,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $rp = new RolePersistence();
         $rp->assignPluginRoles($plugin_id, range(1,7));
     }
-    
+
     function export_participants_action()
     {
         $ex_tstamp = Request::get('ex_tstamp');
