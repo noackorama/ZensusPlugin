@@ -35,10 +35,10 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     function getIconNavigation($course_id, $last_visit, $user_id)
     {
         $this->setId($course_id);
-        if ($GLOBALS['UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW'] && $this->isVisible()) {
+        if (Config::get()->UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW && $this->isVisible()) {
             $has_changed = $this->hasChanged($last_visit);
             $message = $this->getOverviewMessage($has_changed);
-            $nav = new Navigation($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'], PluginEngine::getUrl($this),array(),'show');
+            $nav = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
             $nav->setImage($has_changed ? 'icons/20/red/evaluation' : 'icons/20/black/evaluation', array('title' => $message));
             return $nav;
         }
@@ -48,7 +48,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     {
         $this->setId($course_id);
         if ($this->isVisible()) {
-            $tab = new Navigation($GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'], PluginEngine::getUrl($this),array(),'show');
+            $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
             $tab->setActiveImage(Assets::image_path('icons/16/black/evaluation'));
             $tab->setImage(Assets::image_path('icons/16/white/evaluation'));
             return array(get_class($this) => $tab);
@@ -109,7 +109,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if (!$GLOBALS['perm']->have_studip_perm('dozent', $this->getId())){
             if($this->course_status['questionnaire'] == true) return _("Den Fragebogen aufrufen und an der Evaluation teilnehmen"); if($this->course_status['status'] == 'run') return _("Sie haben an dieser Evaluation bereits teilgenommen!");
         }
-        return $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME'] . ': ' .$this->getCourseStatusMessage() . ($has_changed ? ' (' . _("geändert"). ')' : '');
+        return Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME . ': ' .$this->getCourseStatusMessage() . ($has_changed ? ' (' . _("geändert"). ')' : '');
     }
 
     function isVisible() {
@@ -189,8 +189,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             if($calcbegin && !$begin) $begin = $calcbegin;
             if($calcend && !$end) $end = $calcend;
             if($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
-            $globalbegin = $this->SQLDateToTimestamp($GLOBALS['UNIZENSUSPLUGIN_BEGIN_EVALUATION']);
-            $globalend = $this->SQLDateToTimestamp($GLOBALS['UNIZENSUSPLUGIN_END_EVALUATION']);
+            $globalbegin = $this->SQLDateToTimestamp(Config::get()->UNIZENSUSPLUGIN_BEGIN_EVALUATION);
+            $globalend = $this->SQLDateToTimestamp(Config::get()->UNIZENSUSPLUGIN_END_EVALUATION);
             if($globalbegin && !$begin) $begin = $globalbegin;
             if($globalend && !$end) $end = $globalend;
             if($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
@@ -261,7 +261,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     function show_action()
     {
         if (!$this->isVisible()) return;
-        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . $GLOBALS['UNIZENSUSPLUGIN_DISPLAYNAME']);
+        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
         Navigation::activateItem('/course/' . get_class($this));
         ob_start();
         $this->getCourseAndUserStatus();

@@ -12,7 +12,7 @@ class UniZensusRPC {
 	 *
 	 */
 	function UniZensusRPC(){
-		$this->client = new xmlrpc_client($GLOBALS['UNIZENSUSPLUGIN_XMLRPC_ENDPOINT']);
+		$this->client = new xmlrpc_client(Config::get()->UNIZENSUSPLUGIN_XMLRPC_ENDPOINT);
 		$this->client->setDebug($this->debug);
 	}
 
@@ -23,7 +23,7 @@ class UniZensusRPC {
 		}
 		$result = array();
 		$tstamp = date('Y-m-d-H-i');
-		$hash = hash_hmac('md5', $course_id.$tstamp.$user_id, $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2']);
+		$hash = hash_hmac('md5', $course_id.$tstamp.$user_id, Config::get()->UNIZENSUSPLUGIN_SHARED_SECRET1 . Config::get()->UNIZENSUSPLUGIN_SHARED_SECRET2);
 		if (is_null($user_id)){
 			$msg = new xmlrpcmsg("info.course_status_v3", array(new xmlrpcval($course_id, "string"),
 			                                        new xmlrpcval('Stud.IP', "string"),
@@ -63,9 +63,9 @@ class UniZensusRPC {
 
 	function getEvaluationURL($target, $course_id, $user_id){
 		$tstamp = date('Y-m-d-H-i', time() + 120);
-		$hash = md5($course_id . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $tstamp . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2'] . $user_id . $target);
-		//$hash = hash_hmac('md5', $course_id.$course_id.$target.$tstamp.$user_id, $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET1'] . $GLOBALS['UNIZENSUSPLUGIN_SHARED_SECRET2']);
-		$url = $GLOBALS['UNIZENSUSPLUGIN_URL_PREFIX'] . 'app?service=pex/StudIpLoginPage';
+		$hash = md5($course_id . Config::get()->UNIZENSUSPLUGIN_SHARED_SECRET1 . $tstamp . Config::get()->UNIZENSUSPLUGIN_SHARED_SECRET2 . $user_id . $target);
+		//$hash = hash_hmac('md5', $course_id.$course_id.$target.$tstamp.$user_id, Config::get()->UNIZENSUSPLUGIN_SHARED_SECRET1 . Config::get()->UNIZENSUSPLUGIN_SHARED_SECRET2);
+		$url = Config::get()->UNIZENSUSPLUGIN_URL_PREFIX . 'app?service=pex/StudIpLoginPage';
 		$url .= "&sp=$tstamp&sp=$hash&sp=$user_id&sp=$target&sp=".$course_id."&sp=$course_id";
 		return $url;
 	}
@@ -73,7 +73,7 @@ class UniZensusRPC {
 	function putResultToCache($id, $result){
 		if ($this->cache){
 			$db = new DB_Seminar();
-			$data = mysql_escape_string(serialize($result));
+			$data = addslashes(serialize($result));
 			$db->query("REPLACE INTO unizensusplugincache (id,data,chdate) VALUES ('$id', '$data', UNIX_TIMESTAMP())");
 			return $db->affected_rows();
 		}
