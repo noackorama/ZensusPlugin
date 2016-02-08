@@ -583,6 +583,13 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         if (!$data[$seminar_id]) {
             $data = array();
             $data[$seminar_id] = UniZensusPlugin::getAdditionalExportData($seminar_id);
+            $uplugin = PluginManager::getInstance()->getPlugin('UniZensusPlugin');
+            if ($uplugin) {
+                $uplugin->setId($seminar_id);
+                list($starttime,$endtime) = $uplugin->getCourseEvaluationTimeframe();
+                $data[$seminar_id]['eval_start_time'] = $starttime ? strftime('%Y-%m-%d', $starttime) : '';
+                $data[$seminar_id]['eval_end_time'] = $endtime ? strftime('%Y-%m-%d', $endtime) : '';
+            }
         }
         if ($key == 'teilnehmer_anzahl_aktuell') {
             if ($data[$seminar_id]['eval_participants']) {
@@ -617,6 +624,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $xml_names_lecture['resultstore'] = array($this, 'getExportData');
         $xml_names_lecture['flif_course'] = array($this, 'getExportData');
         $xml_names_lecture['fol_course'] = array($this, 'getExportData');
+        $xml_names_lecture['eval_end_time'] = array($this, 'getExportData');
+        $xml_names_lecture['eval_start_time'] = array($this, 'getExportData');
 
         $authcode = Request::option('authcode');
         if ($authcode) {

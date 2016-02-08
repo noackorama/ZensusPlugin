@@ -178,54 +178,46 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             }
     }
 
-    function getCourseEvaluationTimeframe(){
-        if($this->getId()){
-            $db = new DB_Seminar(sprintf("SELECT content, datafield_id FROM datafields_entries WHERE range_id='%s' AND datafield_id IN (%s)",
-                                    $this->getId(), "'".md5('UNIZENSUSPLUGIN_END_EVALUATION')."','".md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION')."'"));
-            while($db->next_record()){
-                if($db->f('datafield_id') == md5('UNIZENSUSPLUGIN_END_EVALUATION')) $end = $this->SQLDateToTimestamp($db->f('content'));
-                if($db->f('datafield_id') == md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION')) $begin = $this->SQLDateToTimestamp($db->f('content'));
-            }
-            if($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
-            list($calcbegin,$calcend) = $this->getCalculatedCourseTimeFrame($this->getId());
-            if($calcbegin && !$begin) $begin = $calcbegin;
-            if($calcend && !$end) $end = $calcend;
-            if($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
+    function getCourseEvaluationTimeframe()
+    {
+        if ($this->getId()) {
+            $end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
+            $begin = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
+            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
+            list($calcbegin, $calcend) = $this->getCalculatedCourseTimeFrame($this->getId());
+            if ($calcbegin && !$begin) $begin = $calcbegin;
+            if ($calcend && !$end) $end = $calcend;
+            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
             $globalbegin = $this->SQLDateToTimestamp(Config::get()->UNIZENSUSPLUGIN_BEGIN_EVALUATION);
             $globalend = $this->SQLDateToTimestamp(Config::get()->UNIZENSUSPLUGIN_END_EVALUATION);
-            if($globalbegin && !$begin) $begin = $globalbegin;
-            if($globalend && !$end) $end = $globalend;
-            if($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
+            if ($globalbegin && !$begin) $begin = $globalbegin;
+            if ($globalend && !$end) $end = $globalend;
+            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
             else return array($globalbegin, strtotime('now 23:59', $globalend));
         }
     }
 
-    function getCalculatedCourseTimeFrame($seminar_id){
-        $db = new DB_Seminar();
+    function getCalculatedCourseTimeFrame($seminar_id)
+    {
         $begin = false;
         $end = false;
-        $seminar = Seminar::GetInstance($seminar_id);
-        $semester = SemesterData::GetInstance();
-        if($seminar->getSemesterDurationTime() == 0){
-            $current_sem = $semester->getSemesterDataByDate($seminar->getSemesterStartTime());
+        $course = Course::find($seminar_id);
+        if ($course->duration_time == 0) {
+            $current_sem = $course->start_semester;
         } else {
-            $current_sem = $semester->getCurrentSemesterData();
+            $current_sem = Semester::findCurrent();
         }
-        $query = sprintf("SELECT count(*) FROM termine WHERE range_id='%s' AND date BETWEEN %s AND %s ", $seminar_id, (int)$current_sem['beginn'],(int)$current_sem['ende']) ;
-        $db->query($query);
-        if ($db->next_record()) {
-            $num = round($db->f(0) * 90 / 100);
+        $termine = DBManager::get()->fetchColumn("SELECT count(*) FROM termine WHERE range_id=? AND date BETWEEN ? AND ? ", array($seminar_id, (int)$current_sem['beginn'], (int)$current_sem['ende']));
+        if ($termine) {
+            $num = round($termine * 90 / 100);
             if (!$num) $num = 1;
-            $query = sprintf("SELECT date FROM termine WHERE range_id='%s' AND date BETWEEN %s AND %s ORDER BY date ASC LIMIT %s,1", $seminar_id, (int)$current_sem['beginn'],(int)$current_sem['ende'], $num-1) ;
-            $db->query($query);
-            $db->next_record();
-            $begin = $db->f('date');
-            if($begin) {
+            $begin = DBManager::get()->fetchColumn("SELECT date FROM termine WHERE range_id=? AND date BETWEEN ? AND ? ORDER BY date ASC LIMIT ?,1", array($seminar_id, (int)$current_sem['beginn'], (int)$current_sem['ende'], (int)$num - 1));
+            if ($begin) {
                 $begin = strtotime("00:00", $begin);
                 $end = strtotime("+20 days", $begin);
             }
-            }
-            return array($begin,$end);
+        }
+        return array($begin, $end);
     }
 
     public static function getDatafieldValue($datafield_id, $range_id, $sec_range_id = '')
