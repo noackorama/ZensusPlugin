@@ -397,7 +397,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
 
 
 
-            echo '<tr><td colspan="3" align="center">'.makeButton('uebernehmen', 'input','','ok').'</td></tr>';
+            echo '<tr><td colspan="3" align="center">' . Studip\Button::create(_("Übernehmen"), 'ok') . '</td></tr>';
             echo chr(10). '</table>';
 
             echo chr(10) . '</fieldset></form>';
