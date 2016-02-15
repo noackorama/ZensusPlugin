@@ -604,6 +604,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         if ($key == 'resultstore') {
             return zensus_xmltag($key, (int)$data[$seminar_id]['eval_stored']);
         }
+        if ($key == 'flif_fol') {
+            $value = $data[$seminar_id]['flif_course'] + $data[$seminar_id]['fol_course']*2;
+            return zensus_xmltag($key, $value);
+        }
         return zensus_xmltag($key, $data[$seminar_id][$key]);
     }
 
@@ -626,6 +630,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $xml_names_lecture['fol_course'] = array($this, 'getExportData');
         $xml_names_lecture['eval_end_time'] = array($this, 'getExportData');
         $xml_names_lecture['eval_start_time'] = array($this, 'getExportData');
+        $xml_names_lecture['flif_fol'] = array($this, 'getExportData');
 
         $authcode = Request::option('authcode');
         if ($authcode) {
