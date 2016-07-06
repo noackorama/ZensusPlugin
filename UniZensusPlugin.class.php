@@ -107,7 +107,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     }
 
     function getOverviewMessage($has_changed = false){
-        if (!$GLOBALS['perm']->have_studip_perm('dozent', $this->getId())){
+        if (!$GLOBALS['perm']->have_studip_perm('tutor', $this->getId())){
             if($this->course_status['questionnaire'] == true) return _("Den Fragebogen aufrufen und an der Evaluation teilnehmen"); if($this->course_status['status'] == 'run') return _("Sie haben an dieser Evaluation bereits teilgenommen!");
         }
         return Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME . ': ' .$this->getCourseStatusMessage() . ($has_changed ? ' (' . _("geändert"). ')' : '');
@@ -115,9 +115,6 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
 
     function isVisible() {
         if (!$this->isActivated($this->getId())) {
-            return false;
-        }
-        if ($GLOBALS['perm']->get_studip_perm($this->getId()) === 'tutor') {
             return false;
         }
         $this->getCourseAndUserStatus();
@@ -140,14 +137,14 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 )
             )
             || $GLOBALS['perm']->have_perm('admin')
-            || $GLOBALS['perm']->have_studip_perm('dozent', $this->getId())
+            || $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())
             ) return true;
         else return false;
     }
 
     function hasChanged($lastviewed) {
         $this->getCourseAndUserStatus();
-        if ($GLOBALS['perm']->have_studip_perm('dozent', $this->getId())){
+        if ($GLOBALS['perm']->have_studip_perm('tutor', $this->getId())){
             return $this->course_status['last_changed'] > $lastviewed;
         } else {
             return $this->course_status['questionnaire'] == true;
@@ -435,12 +432,12 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo chr(10) . '</ul>';
             echo chr(10) . '</p>';
         }
-        $results_available = (@$this->course_status['time_frame']['end'] < time() || $GLOBALS['perm']->have_studip_perm('dozent', $this->getId())) && $this->isAnyResultAvailable($user_id);
+        $results_available = (@$this->course_status['time_frame']['end'] < time() || $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())) && $this->isAnyResultAvailable($user_id);
         if ($this->course_status['numvotes'] < 1) $this->course_status['results'] = false;
         if (($this->course_status['status'] && strpos($this->course_status['status'], 'error') === false) || $this->course_status['pdfquestionnaire']) {
             echo chr(10) . '<p>';
             echo chr(10) . $this->getCourseStatusMessage();
-            if ($GLOBALS['perm']->have_studip_perm('dozent', $this->getId()) && $this->course_status['numvotes'] != -1) {
+            if ($GLOBALS['perm']->have_studip_perm('tutor', $this->getId()) && $this->course_status['numvotes'] != -1) {
                 echo '<br>' . _("Anzahl der Bewertungen für diese Veranstaltung: ") . $this->course_status['numvotes'];
             }
             echo chr(10) . '</p>';
@@ -450,13 +447,13 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('preview',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                     echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Eine Voransicht des Fragebogens aufrufen") . '</a></p>';
                 }
-                if ($this->course_status['pdfquestionnaire'] && $GLOBALS['perm']->have_studip_perm('dozent', $this->getId()) ) {
+                if ($this->course_status['pdfquestionnaire'] && $GLOBALS['perm']->have_studip_perm('tutor', $this->getId()) ) {
                     echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfquestionnaire',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                     echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Papierfragebogen für manuelle Erhebung als PDF aufrufen") . '</a></p>';
                 }
 
                 if ($results_available
-                    && $GLOBALS['perm']->have_studip_perm('dozent', $this->getId())
+                    && $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())
                     && $GLOBALS['auth']->auth['perm'] != 'admin'
                     && $GLOBALS['auth']->auth['perm'] != 'root') {
                     if ($this->course_status['results']) {
@@ -535,7 +532,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     echo '<hr>';
                 }
                 if ($this->course_status['questionnaire']) {
-                    if (!$GLOBALS['perm']->have_studip_perm('dozent' , $this->getId())) {
+                    if (!$GLOBALS['perm']->have_studip_perm('tutor' , $this->getId())) {
                         if (!$this->course_status['pdfquestionnaire']) {
                             echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('questionnaire',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                             echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Den Fragebogen aufrufen und an der Evaluation teilnehmen") . '</a></p>';
@@ -543,9 +540,9 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                             echo chr(10) .'<p>'. _("Für diese Evaluation ist ein Papierfragebogen vorgesehen. Weitere Informationen bekommen Sie von den Lehrenden der Veranstaltung.") . '</p>';
                         }
                     } else {
-                        echo chr(10) . '<p>'._("Als Dozent der Veranstaltung können sie nicht an der Evaluation teilnehmen!") . '</p>';
+                        echo chr(10) . '<p>'._("Als Dozent/Tutor der Veranstaltung können sie nicht an der Evaluation teilnehmen!") . '</p>';
                     }
-                } elseif ($this->course_status['status'] == 'run' && !$GLOBALS['perm']->have_studip_perm('dozent' , $this->getId())){
+                } elseif ($this->course_status['status'] == 'run' && !$GLOBALS['perm']->have_studip_perm('tutor' , $this->getId())){
                     echo chr(10) .'<p>'. _("Sie haben an dieser Evaluation bereits teilgenommen!") . '</p>';
                 }
 
