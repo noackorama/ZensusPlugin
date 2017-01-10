@@ -474,20 +474,20 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     }
                 }
 
-                if (!$results_available && $this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('autor', $this->getId())) {
+                if (!$results_available && $this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())) {
                     if($this->course_status['noresultsreason'] == 'wrong phase') {
                         echo chr(10) . '<p>';
                         echo _("Die Auswertung liegt noch nicht vor, da die Evaluation noch läuft.");
                         echo chr(10) . '</p>';
                     }
-                    if($this->course_status['noresultsreason'] == 'not public') {
+                    if($this->course_status['noresultsreason'] == 'not public' && $this->course_status['status'] == 'finished') {
                         echo chr(10) . '<p>';
-                        echo _("Die Evaluation ist beendet, aber das Ergebnis ist nicht öffentlich.");
+                        echo _("Die Auswertung ist nicht öffentlich.");
                         echo chr(10) . '</p>';
                     }
-                    if($this->course_status['noresultsreason'] == 'too few answers') {
+                    if($this->course_status['noresultsreason'] == 'too few answers' && $this->course_status['status'] == 'finished') {
                         echo chr(10) . '<p>';
-                        echo _("Die Evaluation ist beendet, aber die Auswertung liegt nicht vor, bzw. die notwendige Rücklaufquote wurde leider nicht erreicht.");
+                        echo _("Die Auswertung liegt nicht vor, weil die notwendige Rücklaufquote nicht erreicht wurde.");
                         echo chr(10) . '</p>';
                     }
                 }

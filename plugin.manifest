@@ -3,6 +3,6 @@ pluginclassname=UniZensusAdminPlugin
 pluginclassname=UniZensusNagScreen
 pluginname=UniZensusPlugin
 origin=data-quest
-version=1.75
+version=1.76
 StudipMinVersion=3.1
 
