@@ -456,7 +456,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     && $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())
                     && $GLOBALS['auth']->auth['perm'] != 'admin'
                     && $GLOBALS['auth']->auth['perm'] != 'root') {
-                    if ($this->course_status['results']) {
+                    if ($this->checkResultforUser('pdfresults', $user_id)) {
                         echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                         echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
                     }
@@ -474,7 +474,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     && !$this->course_status['questionnaire']
                     && $additional_data['eval_public_stud']
                     ) {
-                    if ($this->course_status['results']) {
+                    if ($this->checkResultforUser('pdfresults', $user_id)) {
                         echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
                         echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
                     }
@@ -511,7 +511,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                         if ($this->isAnyResultAvailable($m['user_id'])) {
                             echo '<hr>';
                             echo '<h3>' . htmlready($m['Nachname'].', '.$m['Vorname']) . '</h4>';
-                            if ($this->course_status['results']) {
+                            if ($this->checkResultforUser('pdfresults', $m['user_id'])) {
                                 echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(),$m['user_id']) . '">';
                                 echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
                             }
