@@ -16,7 +16,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     static function SQLDateToTimestamp($sqldate){
         $date_values = explode("-", $sqldate); //YYYY-MM-DD
         if (checkdate((int)$date_values[1],(int)$date_values[2],(int)$date_values[0])){
-            return mktime(0,0,0,$date_values[1],$date_values[2],$date_values[0], 0);
+            return mktime(0,0,0,$date_values[1],$date_values[2],$date_values[0]);
         } else {
             return false;
         }
@@ -244,9 +244,9 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             $eval_stored[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_speichern, $seminar_id, $dozent['user_id']);
             $eval_public_stud[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $seminar_id, $dozent['user_id']);
         }
-        $ret['eval_public'] = min($eval_public);
+        $ret['eval_public'] = count($eval_public) ? min($eval_public) : 0;
         $ret['eval_stored'] = array_sum($eval_stored) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
-        $ret['eval_public_stud'] = min($eval_public_stud);
+        $ret['eval_public_stud'] = count($eval_public_stud) ? min($eval_public_stud) : 0;
         return $ret;
     }
 
