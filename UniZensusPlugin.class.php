@@ -126,14 +126,14 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if (
             ($this->course_status['status']
             && strpos($this->course_status['status'], 'error') === false
-            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $results_available
+            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['finished']
                 ) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
                 )
             && (!isset($this->course_status['time_frame'])
                 || ($this->course_status['time_frame']['begin'] < time()
                     && $this->course_status['time_frame']['end'] > time()
                     )
-                || ($additional_data['eval_public_stud'] && $results_available)
+                || ($this->course_status['finished'])
                 )
             )
             || $GLOBALS['perm']->have_perm('admin')
@@ -233,6 +233,13 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         return $p->execute(array($content, $datafield_id, $range_id, $sec_range_id));
     }
 
+    public static function unsetDatafieldValue($datafield_id, $range_id, $sec_range_id = '')
+    {
+        $db = DBManager::get();
+        $p = $db->prepare("DELETE FROM datafields_entries WHERE datafield_id=? AND range_id=? AND sec_range_id=?");
+        return $p->execute(array($datafield_id, $range_id, $sec_range_id));
+    }
+
     public static function getAdditionalExportData($seminar_id)
     {
         $eval_public = $eval_stored =  $eval_public_stud = array();
@@ -256,7 +263,6 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
         Navigation::activateItem('/course/' . get_class($this));
         ob_start();
-        $this->getCourseAndUserStatus();
         $pluginrelativepath = $this->getPluginUrl();
         $user_id = $GLOBALS['user']->id;
         echo chr(10) . '<div style="padding:10px;background-color:white">';
@@ -268,13 +274,39 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 self::setDatafieldValue(Request::int('eval_public'), self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id);
                 self::setDatafieldValue(Request::int('eval_stored'), self::$datafield_id_auswertung_speichern, $this->getID(), $GLOBALS['user']->id);
                 self::setDatafieldValue(Request::int('eval_public_stud'), self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id);
+                $new_start = strtotime(Request::get('time_frame1'));
+                $new_end = strtotime(Request::get('time_frame2'));
+                if ($new_start && $new_end && $new_end >= $new_start) {
+                    self::setDatafieldValue(date('Y-m-d', $new_end), md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
+                    self::setDatafieldValue(date('Y-m-d', $new_start), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
+                } else {
+                    self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
+                    self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
+                }
                 echo MessageBox::success(_("Die Einstellungen wurden gespeichert."));
             }
+            $this->getCourseAndUserStatus();
+            $valid_end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
+            $valid_begin = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
+            if ($valid_end !== false && $valid_end < $valid_begin) $valid_end = false;
             echo chr(10) . '<form action="?" method="post">';
             echo chr(10) . (class_exists('CSRFProtection') ? CSRFProtection::tokenTag() : '') ;
 
             echo chr(10) . '<fieldset><legend>'._("Einstellungen").'</legend>';
             echo chr(10). '<table cellspacing="2" border="0">';
+            echo '<tr><td>';
+            echo '<label style="font-weight:bold" for="time_frame">' ._("Zeitraum") . '</label>';
+            echo '</td><td align="center">';
+            echo 'Start:<input class="has-date-picker hasDatePicker" name="time_frame1" id="time_frame1" size="10" value="' . ($valid_begin ? strftime('%x', $this->course_status['time_frame']['begin']) :'') . '" type="text" ' . (!$valid_begin && $this->course_status['time_frame']['begin'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['begin']).'"' : '') . '>';
+            echo 'Ende:<input class="has-date-picker hasDatePicker" name="time_frame2" id="time_frame2" size="10" value="' . ($valid_end ? strftime('%x', $this->course_status['time_frame']['end']) : '') . '" type="text" ' . (!$valid_end && $this->course_status['time_frame']['end'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['end']).'"' : '') . '>';
+            echo '</td><td>';
+            echo '<div style="font-style:italic; padding-left: 10px;">';
+            echo sprintf(_("Innerhalb dieses Zeitraumes ist die Evaluation für die Studierenden zugänglich. Ohne manuelle Eingabe wird der Zeitraum aus den letzten Terminen der Veranstaltung bestimmt und läuft 20 Tage. (zur Zeit: Start %s, Ende %s)")
+                , $valid_begin ? 'manuell' : 'automatisch', $valid_end ? 'manuell' : 'automatisch');
+            echo '</div>';
+            echo '</td></tr>';
+
+            echo '<tr><td colspan="3"><hr></td></tr>';
             echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_participants">' ._("Konkrete Teilnehmeranzahl") . '</label>';
             echo '</td><td align="center">';
@@ -339,7 +371,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '<tr><td colspan="3"><hr></td></tr>';
 
             echo '<tr><td>';
-            echo '<label style="font-weight:bold" for="eval_public">' ._("Ergebnisweiterleitung an Studiendekanin/Studiendekan (und evtl. Evaluationsbeauftragte/n)") . '</label>';
+            echo '<label style="font-weight:bold" for="eval_public">' ._("Ergebnisweiterleitung an Studiendekanin/Studiendekan sowie Evaluationsbeauftragte/n") . '</label>';
             if (count($lehrende)) {
                 echo '<ul style="font-size:smaller">';
                 foreach($lehrende as $l) {
@@ -472,27 +504,32 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 if ($results_available
                     && $GLOBALS['perm']->get_studip_perm($this->getId()) == 'autor'
                     && !$this->course_status['questionnaire']
-                    && $additional_data['eval_public_stud']
                     ) {
-                    $checked_user_id = $GLOBALS['user']->id;
-                    foreach(Seminar::getInstance($this->getId())->getMembers('dozent') as $m) {
-                        if ($this->checkResultforUser('pdfresults', $m['user_id'])) {
-                            $checked_user_id = $m['user_id'];
-                            break;
+                    if ($additional_data['eval_public_stud']) {
+                        $checked_user_id = $GLOBALS['user']->id;
+                        foreach (Seminar::getInstance($this->getId())->getMembers('dozent') as $m) {
+                            if ($this->checkResultforUser('pdfresults', $m['user_id'])) {
+                                $checked_user_id = $m['user_id'];
+                                break;
+                            }
                         }
-                    }
                         if ($this->checkResultforUser('pdfresults', $checked_user_id)) {
-                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results',$this->getZensusCourseId(), $checked_user_id) . '">';
-                        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
-                    }
-                    //hier könnte evtl. pdfdetail benutzt werden, im Moment nur für OL relevant
-                    if ($additional_data['eval_public_stud'] == 2 && $this->checkResultforUser('pdfresults', $checked_user_id)) {
-                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults',$this->getZensusCourseId(),$checked_user_id) . '">';
-                        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
-                    }
-                    if ($additional_data['eval_public_stud'] == 1 && $this->checkResultforUser('pdfdetailfreetexts', $checked_user_id)) {
-                        echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$checked_user_id) . '">';
-                        echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung mit Kommentaren) der Evaluation als PDF aufrufen") . '</a></p>';
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('results', $this->getZensusCourseId(), $checked_user_id) . '">';
+                            echo chr(10) . '<img src="' . $pluginrelativepath . '/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
+                        }
+                        //hier könnte evtl. pdfdetail benutzt werden, im Moment nur für OL relevant
+                        if ($additional_data['eval_public_stud'] == 2 && $this->checkResultforUser('pdfresults', $checked_user_id)) {
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults', $this->getZensusCourseId(), $checked_user_id) . '">';
+                            echo chr(10) . '<img src="' . $pluginrelativepath . '/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
+                        }
+                        if ($additional_data['eval_public_stud'] == 1 && $this->checkResultforUser('pdfdetailfreetexts', $checked_user_id)) {
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts', $this->getZensusCourseId(), $checked_user_id) . '">';
+                            echo chr(10) . '<img src="' . $pluginrelativepath . '/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung mit Kommentaren) der Evaluation als PDF aufrufen") . '</a></p>';
+                        }
+                    } else {
+                        echo chr(10) . '<p>';
+                        echo _("Die	Evaluation ist abgeschlossen und die Ergebnisse liegen vor. Leider hat die Lehrkraft diese nicht zur Einsicht freigegeben.");
+                        echo chr(10) . '</p>';
                     }
                 }
 
