@@ -301,8 +301,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo 'Ende:<input class="has-date-picker hasDatePicker" name="time_frame2" id="time_frame2" size="10" value="' . ($valid_end ? strftime('%x', $this->course_status['time_frame']['end']) : '') . '" type="text" ' . (!$valid_end && $this->course_status['time_frame']['end'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['end']).'"' : '') . '>';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
-            echo sprintf(_("Innerhalb dieses Zeitraumes ist die Evaluation für die Studierenden zugänglich. Ohne manuelle Eingabe wird der Zeitraum aus den letzten Terminen der Veranstaltung bestimmt und läuft 20 Tage. (zur Zeit: Start %s, Ende %s)")
-                , $valid_begin ? 'manuell' : 'automatisch', $valid_end ? 'manuell' : 'automatisch');
+            echo _("Innerhalb dieses Zeitraumes ist die Evaluation für die Studierenden zugänglich. Bitte ändern Sie diesen nur bei Bedarf (z.B. für Blockseminare).");
             echo '</div>';
             echo '</td></tr>';
 
