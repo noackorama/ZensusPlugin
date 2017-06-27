@@ -126,14 +126,14 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if (
             ($this->course_status['status']
             && strpos($this->course_status['status'], 'error') === false
-            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['finished']
+            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['status'] == 'finished'
                 ) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
                 )
             && (!isset($this->course_status['time_frame'])
                 || ($this->course_status['time_frame']['begin'] < time()
                     && $this->course_status['time_frame']['end'] > time()
                     )
-                || ($this->course_status['finished'])
+                || ($this->course_status['status'] == 'finished')
                 )
             )
             || $GLOBALS['perm']->have_perm('admin')
