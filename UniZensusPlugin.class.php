@@ -527,7 +527,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                         }
                     } else {
                         echo chr(10) . '<p>';
-                        echo _("Die Evaluation ist abgeschlossen und die Ergebnisse liegen vor. Leider hat die Lehrkraft diese nicht zur Einsicht freigegeben.");
+                        echo _("Die Evaluation ist beendet, aber die Auswertung liegt nicht vor, da entweder die notwendige Rücklaufquote nicht erreicht wurde bzw. die Ergebnisse von der/dem Lehrenden nicht freigegeben wurden.");
                         echo chr(10) . '</p>';
                     }
                 }
