@@ -463,7 +463,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo chr(10) . '</ul>';
             echo chr(10) . '</p>';
         }
-        $results_available = (@$this->course_status['time_frame']['end'] < time() || $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())) && $this->isAnyResultAvailable($user_id);
+        $results_available = ($this->course_status['status'] == 'finished' || $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())) && $this->isAnyResultAvailable($user_id);
         if ($this->course_status['numvotes'] < 1) $this->course_status['results'] = false;
         if (($this->course_status['status'] && strpos($this->course_status['status'], 'error') === false) || $this->course_status['pdfquestionnaire']) {
             echo chr(10) . '<p>';
