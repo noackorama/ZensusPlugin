@@ -11,7 +11,7 @@ class UniZensusRPC {
 	/**
 	 *
 	 */
-	function UniZensusRPC(){
+	function __construct(){
 		$this->client = new xmlrpc_client(Config::get()->UNIZENSUSPLUGIN_XMLRPC_ENDPOINT);
 		$this->client->setDebug($this->debug);
 	}

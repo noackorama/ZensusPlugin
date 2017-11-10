@@ -201,8 +201,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         if ($_SESSION['zensus_admin']['filter_name']) {
-            $sem_condition .= " AND (seminare.Name LIKE '%".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%' ";
-            $sem_condition .= " OR seminare.VeranstaltungsNummer LIKE '%".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%') ";
+            $sem_condition .= " AND (seminare.Name LIKE '%".addslashes($_SESSION['zensus_admin']['filter_name'])."%' ";
+            $sem_condition .= " OR seminare.VeranstaltungsNummer LIKE '%".addslashes($_SESSION['zensus_admin']['filter_name'])."%') ";
         }
         if(isset($_REQUEST['sortby'])){
             foreach($cols as $col){
