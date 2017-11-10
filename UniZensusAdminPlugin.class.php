@@ -117,7 +117,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         ob_start();
         $cols = array();
         $cols[] = array(1,'','');
-        $cols[] = array(30,_("Veranstaltung"),'Name');
+        $cols[] = array(10,_("Nr."),'VeranstaltungsNummer');
+        $cols[] = array(20,_("Veranstaltung"),'Name');
         $cols[] = array(15,_("Dozenten"),'dozenten');
         $cols[] = array(5,_("&sum; Stud.IP"),'teilnehmer_anzahl_aktuell');
         $cols[] = array(5,_("Zensus Status"),'zensus_status');
@@ -173,6 +174,13 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
 
+        if (Request::submitted('reset_search')) {
+            $_SESSION['_default_sem'] = Semester::findCurrent()->semester_id;
+            $_SESSION['zensus_admin']['check_eval'] = false;
+            $_SESSION['zensus_admin']['plugin_activated'] = false;
+            $_SESSION['zensus_admin']['filter_name'] = "";
+        }
+
         if (Request::submitted('choose_institut') || Request::submitted('export')) {
             $_SESSION['_default_sem'] = Request::option('select_sem', $_SESSION['_default_sem']);
             $_SESSION['zensus_admin']['check_eval'] = isset($_REQUEST['check_eval']);
@@ -193,8 +201,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         if ($_SESSION['zensus_admin']['filter_name']) {
-            $sem_condition .= " AND (seminare.Name LIKE '".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%' ";
-            $sem_condition .= " OR seminare.VeranstaltungsNummer LIKE '".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%') ";
+            $sem_condition .= " AND (seminare.Name LIKE '%".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%' ";
+            $sem_condition .= " OR seminare.VeranstaltungsNummer LIKE '%".mysql_escape_string($_SESSION['zensus_admin']['filter_name'])."%') ";
         }
         if(isset($_REQUEST['sortby'])){
             foreach($cols as $col){
@@ -228,7 +236,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             <select name="institut_id" style="vertical-align:middle;">
             <?
             reset($_my_inst);
+            $num_all = 0;
             while (list($key,$value) = each($_my_inst)){
+                if ($key == 'all') $num_all = $value["num_sem"];
+                if ($value["num_sem"] == '0' && $num_all > 0 && $key != $_SESSION['zensus_admin']['institut_id'] ) continue;
                 printf ("<option %s value=\"%s\" style=\"%s\">%s (%s)</option>\n",
                     ($key == $_SESSION['zensus_admin']['institut_id']) ? "selected" : "" , $key,($value["is_fak"] ? "font-weight:bold;" : ""),
                     htmlReady($value["name"]), $value["num_sem"]);
@@ -237,6 +248,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $num_inst = $value["num_inst"];
                     for ($i = 0; $i < $num_inst; ++$i){
                         list($key,$value) = each($_my_inst);
+                        if ($value["num_sem"] == '0') continue;
                         printf("<option %s value=\"%s\">&nbsp;&nbsp;&nbsp;&nbsp;%s (%s)</option>\n",
                             ($key == $_SESSION['zensus_admin']['institut_id']) ? "selected" : "", $key,
                             htmlReady($value["name"]), $value["num_sem"]);
@@ -249,6 +261,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             </select>&nbsp;
             <?=SemesterData::GetSemesterSelector(array('name'=>'select_sem', 'style'=>'vertical-align:middle;'), $_SESSION['_default_sem'], 'semester_id', false)?>
             <?=Studip\Button::create(_('Auswählen'), "choose_institut")?>
+            <?=Studip\Button::create(_('Zurücksetzen'), "reset_search")?>
             <br>
             <span style="font-size:80%;">
             ausgewählte ID: <span style="background-color:yellow;"><?=$institut_id?></span>
@@ -311,7 +324,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo "<table class=\"default\">";
                 echo "<tr>";
                 foreach($cols as $i => $col) {
-                    echo "<th width=\"{$col[0]}%\" style=\"font-size:80%;text-align:center\">";
+                    echo "<th width=\"{$col[0]}%\" style=\"font-size:80%;\">";
                     if (!$i) {
                         echo '<input type="checkbox" onChange="jQuery(\'input[name^=sem_choosen]\').attr(\'checked\',this.checked);">';
                     } else {
@@ -394,6 +407,10 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo '<td align="center"><input type="checkbox" name="sem_choosen['.$seminar_id.']" value="1" '.($semdata['choosen'] ? 'checked':'').'></td>';
                 printf ("<td>
                     <a title=\"%s\" href=\"%s\">
+                    %s
+                    </a></td>
+                    <td>
+                    <a title=\"%s\" href=\"%s\">
                     %s%s%s
                     </a></td>
                     <td align=\"center\">
@@ -407,6 +424,9 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     <td align=\"center\">%s</td>
                     <td align=\"center\">%s</td>
                     ",
+                    htmlready($dates),
+                    UrlHelper::getLink($semlink.$seminar_id),
+                    htmlready($semdata['VeranstaltungsNummer']),
                     htmlready($dates),
                     UrlHelper::getLink($semlink.$seminar_id),
                     htmlready(substr($semdata['Name'], 0, 60)),
