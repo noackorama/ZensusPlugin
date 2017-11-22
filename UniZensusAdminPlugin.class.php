@@ -71,7 +71,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
     }
 
     private function hasPermission() {
-        return $GLOBALS['perm']->have_perm('admin');
+        return $GLOBALS['perm']->have_perm('root') ||
+            ($this->user_is_eval_admin = RolePersistence::isAssignedRole($GLOBALS['user']->id, 'ZensusAdmin'));
     }
 
 
@@ -396,7 +397,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     die();
                 }
             }
-            $semlink = $GLOBALS['perm']->have_studip_perm('admin', $_SESSION['zensus_admin']['institut_id']) ? 'seminar_main.php?auswahl=' : 'details.php?sem_id=';
+            $semlink = $GLOBALS['perm']->have_studip_perm('admin', $_SESSION['zensus_admin']['institut_id']) ? 'dispatch.php/course/dates?cid=' : 'dispatch.php/course/details?sem_id=';
             foreach($data as $seminar_id => $semdata) {
                 $sem = new Seminar($seminar_id);
                 $dates = $sem->getDatesExport(array(
@@ -412,7 +413,11 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     <td>
                     <a title=\"%s\" href=\"%s\">
                     %s%s%s
-                    </a></td>
+                    </a>
+                    <a data-dialog href=\"" . URLHelper::getScriptLink('dispatch.php/course/details/index/') . "%s\">
+                     ". Assets::img('icons/20/grey/info-circle.png', tooltip2(_("Veranstaltungsdetails"))) ."
+                    </a>
+                    </td>
                     <td align=\"center\">
                     %s</td>
                     <td align=\"center\">%s</td>
@@ -432,6 +437,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     htmlready(substr($semdata['Name'], 0, 60)),
                     (strlen($semdata['Name'])>60) ? "..." : "",
                     !$semdata['visible'] ? ' ' . _("(versteckt)") : '',
+                        $seminar_id,
                     htmlReady($semdata['dozenten']),
                     htmlReady($semdata['teilnehmer_anzahl_aktuell']),
                     $semdata['link'],
@@ -463,18 +469,24 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
     }
 
     function getInstitute($seminare_condition){
-        global $perm, $user,$_default_sem;
+        global $perm, $user;
         $db = new DB_Seminar();
         $db2 = new DB_Seminar();
-        if($perm->have_perm('root')){
+        if (!$perm->have_perm('root')) {
+            $z_role = current(array_filter(RolePersistence::getAssignedRoles($user->id), function ($r) {
+                return $r->rolename == 'ZensusAdmin';
+            }));
+            $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes($user->id, $z_role->roleid));
+        }
+        if ($perm->have_perm('root') || !count($z_institutes)) {
             $db->query("SELECT COUNT(*) FROM seminare WHERE 1 $seminare_condition");
             $db->next_record();
             $_my_inst['all'] = array("name" => _("alle") , "num_sem" => $db->f(0));
             $db->query("SELECT a.Institut_id,a.Name, 1 AS is_fak, count(seminar_id) AS num_sem FROM Institute a
                 LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE a.Institut_id=fakultaets_id GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         } else {
-            $db->query("SELECT a.Institut_id,b.Name, IF(b.Institut_id=b.fakultaets_id,1,0) AS is_fak,count(seminar_id) AS num_sem FROM user_inst a LEFT JOIN Institute b USING (Institut_id)
-                LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE a.user_id='$user->id' AND a.inst_perms='admin' GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
+            $db->query("SELECT b.Institut_id,b.Name, IF(b.Institut_id=b.fakultaets_id,1,0) AS is_fak,count(seminar_id) AS num_sem FROM Institute b
+                LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE b.Institut_id IN ('" . join("';'", $z_institutes) ."') GROUP BY b.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         }
         while($db->next_record()){
             $_my_inst[$db->f("Institut_id")] = array("name" => $db->f("Name"), "is_fak" => $db->f("is_fak"), "num_sem" => $db->f("num_sem"));

@@ -160,15 +160,19 @@ function zensus_output_data($object_data, $output_mode = "direct", $flush = fals
 */
 function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid = null)
 {
-    global $persons;
+    global $persons, $user;
 
     $db=new DB_Seminar;
 
     zensus_output_data ( zensus_xmlheader(), $o_mode);
 
     if ($auth_uid && get_global_perm($auth_uid) != 'root') {
+        $z_role = current(array_filter(RolePersistence::getAssignedRoles($user->id), function ($r) {
+            return $r->rolename == 'ZensusAdmin';
+        }));
+        $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes($user->id, $z_role->roleid));
         if ($range_id == 'root') {
-            $db->query("SELECT Institut_id, fakultaets_id FROM user_inst INNER JOIN Institute USING (Institut_id) WHERE inst_perms = 'admin' AND user_id = '" . $auth_uid . "' ORDER BY Institut_id=fakultaets_id");
+            $db->query("SELECT Institut_id, fakultaets_id FROM Institute WHERE Institut_id IN ('". join("';'", $z_institutes) ."') ORDER BY Institut_id=fakultaets_id");
             $faks = array();
             $insts = array();
             while ($db->next_record()) {
@@ -193,18 +197,18 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
                 zensus_export_inst( $i ,'all', $o_mode);
             }
         } else {
-            if (get_object_type($range_id) == 'inst' && $GLOBALS['perm']->have_studip_perm('admin', $range_id, $auth_uid)) {
+            if (get_object_type($range_id) == 'inst' && in_array($range_id, $z_institutes )) {
                 zensus_export_inst( $range_id, 'all' , $o_mode);
             }
-            if (get_object_type($range_id) == 'fak' && $GLOBALS['perm']->have_studip_perm('admin', $range_id, $auth_uid)) {
+            if (get_object_type($range_id) == 'fak' && in_array($range_id, $z_institutes )) {
             $db->query("SELECT Institut_id FROM Institute WHERE fakultaets_id = '" . $range_id . "' ORDER BY Institut_id=fakultaets_id");
                 while ($db->next_record()) {
                     zensus_export_inst( $db->f("Institut_id"),'all', $o_mode );
                 }
             }
-            if (get_object_type($range_id) == 'sem' && $GLOBALS['perm']->have_studip_perm('admin', $range_id, $auth_uid)) {
+            if (get_object_type($range_id) == 'sem') {
                 $db->query("SELECT * FROM seminare WHERE Seminar_id = '" . $range_id . "'");
-                if (($db->next_record()) And ($db->f("Name") != ""))
+                if (($db->next_record()) And ($db->f("Name") != "") && in_array($db->f("Institut_id"), $z_institutes ))
                 {
                     zensus_export_inst( $db->f("Institut_id"), $db->f("Seminar_id") , $o_mode);
                 }

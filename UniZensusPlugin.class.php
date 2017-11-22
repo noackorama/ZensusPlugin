@@ -391,6 +391,57 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo chr(10) . '</fieldset></form>';
 
         }*/
+
+        PageLayout::addScript($this->getPluginURL()."/assets/qrcode.min.js");
+        PageLayout::addScript($this->getPluginURL()."/assets/qrcourse.js");
+        $this->addStylesheet("assets/qrcourse.less");
+        URLHelper::setBaseURL($GLOBALS['ABSOLUTE_URI_STUDIP']);
+        $url = URLHelper::getLink($_SERVER['REQUEST_URI']);
+        PageLayout::addBodyElements('
+                <div style="background-color: white; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center;"
+                     id="qr_code">
+                    <div>
+                        <div style="margin-left: auto; margin-right: auto; text-align: center;" id="qr_code_div"></div>
+                    </div>
+                    <div class="bottom">
+                        ' . Assets::img("logos/logoklein.png", array('style' => "height: 40px;")) . '
+                        <span>'.htmlReady($url).'</span>
+                    </div>
+                </div>
+                <script>
+                    jQuery(function () {
+                        //var qrcode = new QRCode("'. $url .'");
+                        //var svg = qrcode.svg();
+                        //jQuery("#qr_code img.qr_code").attr("src", "data:image/svg+xml;base64," + btoa(svg));
+                        
+                        new QRCode(
+                            document.getElementById("qr_code_div"), { 
+                                text: "' . $url . '",
+                                width: 1280,
+                                height: 1280
+                            }
+                        );
+                    });
+                    STUDIP.EvaSys = {
+                        showQR: function () {
+                            var qr = jQuery("#qr_code")[0];
+                            if (qr.requestFullscreen) {
+                                qr.requestFullscreen();
+                            } else if (qr.msRequestFullscreen) {
+                                qr.msRequestFullscreen();
+                            } else if (qr.mozRequestFullScreen) {
+                                qr.mozRequestFullScreen();
+                            } else if (qr.webkitRequestFullscreen) {
+                                qr.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+                            }
+                        }
+                    };
+                </script>
+            ');
+
+        if ($GLOBALS['perm']->have_studip_perm('dozent', $this->getId())) {
+            echo chr(10) . '<div><a href="#" title="Ihre Studierenden können den QR-Code mit dem Smartphone vom Beamer abscannen und gleich in der Veranstaltung abstimmen." onClick="STUDIP.QRCourse.showQR(); return false;">' . Assets::img('icons/blue/code-qr.svg', array('width' => '64')). '&nbsp;QR-Code anzeigen</a></div>';
+        }
         echo chr(10) . '<h3>' . _("Status der Lehrevaluation:") . '</h3>';
         if (isset($this->course_status['time_frame'])){
             echo chr(10) . '<p>';
@@ -431,6 +482,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             }
             echo chr(10) . '</p>';
             if ($this->course_status['preview'] || $this->course_status['pdfquestionnaire'] || $this->course_status['questionnaire'] || $this->course_status['noresultsreason'] || $results_available){
+
+
                 echo chr(10) . '<div style="font-weight:bold;font-size:10pt;border: 1px solid;padding:5px">' . _("Mögliche Aktionen:") . '<div style="font-size:10pt;margin-left:10px">';
                 if ($this->course_status['preview']) {
                     echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('preview',$this->getZensusCourseId(),$GLOBALS['user']->id) . '">';
