@@ -486,7 +486,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 LEFT JOIN seminare ON(seminare.Institut_id=a.Institut_id $seminare_condition  ) WHERE a.Institut_id=fakultaets_id GROUP BY a.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         } else {
             $db->query("SELECT b.Institut_id,b.Name, IF(b.Institut_id=b.fakultaets_id,1,0) AS is_fak,count(seminar_id) AS num_sem FROM Institute b
-                LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE b.Institut_id IN ('" . join("';'", $z_institutes) ."') GROUP BY b.Institut_id ORDER BY is_fak,Name,num_sem DESC");
+                LEFT JOIN seminare ON(seminare.Institut_id=b.Institut_id $seminare_condition  )    WHERE b.Institut_id IN ('" . join("','", $z_institutes) ."') GROUP BY b.Institut_id ORDER BY is_fak,Name,num_sem DESC");
         }
         while($db->next_record()){
             $_my_inst[$db->f("Institut_id")] = array("name" => $db->f("Name"), "is_fak" => $db->f("is_fak"), "num_sem" => $db->f("num_sem"));

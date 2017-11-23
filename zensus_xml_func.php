@@ -172,7 +172,7 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
         }));
         $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes($user->id, $z_role->roleid));
         if ($range_id == 'root') {
-            $db->query("SELECT Institut_id, fakultaets_id FROM Institute WHERE Institut_id IN ('". join("';'", $z_institutes) ."') ORDER BY Institut_id=fakultaets_id");
+            $db->query("SELECT Institut_id, fakultaets_id FROM Institute WHERE Institut_id IN ('". join("','", $z_institutes) ."') ORDER BY Institut_id=fakultaets_id");
             $faks = array();
             $insts = array();
             while ($db->next_record()) {
