@@ -275,7 +275,7 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
                 } else {
                     $sem_ids = 'root';
                     $to_export = DbManager::get()
-                            ->query("SELECT DISTINCT Institut_id FROM seminare INNER JOIN seminar_sem_tree USING(seminar_id)
+                            ->query("SELECT DISTINCT Institut_id FROM seminare 
                                     " . ($semester ?
                                        "WHERE seminare.start_time <=".$semester->beginn." AND (".$semester->beginn." <= (seminare.start_time + seminare.duration_time) OR seminare.duration_time = -1)"
                                         : ""))->fetchAll(PDO::FETCH_COLUMN);
@@ -365,13 +365,9 @@ function zensus_export_sem($inst_id, $ex_sem_id = "all", $o_mode = 'direct')
         $addquery = " AND seminare.start_time <=".$semester->beginn." AND (".$semester->beginn." <= (seminare.start_time + seminare.duration_time) OR seminare.duration_time = -1) ";
     }
 
-    if ($ex_sem_id != "all"){
-        if ($ex_sem_id == 'root') {
-            $addquery .= " AND EXISTS(SELECT * FROM seminar_sem_tree WHERE seminar_sem_tree.seminar_id=seminare.Seminar_id) ";
-        } else {
-            if (!is_array($ex_sem_id)) $ex_sem_id = array($ex_sem_id);
-            $ex_sem_id = array_flip($ex_sem_id);
-        }
+    if ($ex_sem_id != "all" && $ex_sem_id != "root"){
+        if (!is_array($ex_sem_id)) $ex_sem_id = array($ex_sem_id);
+        $ex_sem_id = array_flip($ex_sem_id);
     }
 
     if ($ex_only_visible) $addquery .= " AND visible=1 ";
