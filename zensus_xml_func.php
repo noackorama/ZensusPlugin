@@ -167,10 +167,12 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
     zensus_output_data ( zensus_xmlheader(), $o_mode);
 
     if ($auth_uid && get_global_perm($auth_uid) != 'root') {
+
         $z_role = current(array_filter(RolePersistence::getAssignedRoles($user->id), function ($r) {
             return $r->rolename == 'ZensusAdmin';
         }));
         $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes($user->id, $z_role->roleid));
+        $z_institutes = array_unique(array_merge($z_institutes, Institute::findAndMapBySQL(function($i){return $i->id;}, "fakultaets_id IN (?)", array($z_institutes))));
         if ($range_id == 'root') {
             $db->query("SELECT Institut_id, fakultaets_id FROM Institute WHERE Institut_id IN ('". join("','", $z_institutes) ."') ORDER BY Institut_id=fakultaets_id");
             $faks = array();
