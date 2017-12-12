@@ -180,6 +180,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $_SESSION['zensus_admin']['check_eval'] = false;
             $_SESSION['zensus_admin']['plugin_activated'] = false;
             $_SESSION['zensus_admin']['filter_name'] = "";
+            $_SESSION['zensus_admin']['show_sem_class'] = null;
         }
 
         if (Request::submitted('choose_institut') || Request::submitted('export')) {
@@ -187,6 +188,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $_SESSION['zensus_admin']['check_eval'] = isset($_REQUEST['check_eval']);
             $_SESSION['zensus_admin']['plugin_activated'] = isset($_REQUEST['plugin_activated']);
             $_SESSION['zensus_admin']['filter_name'] = trim(Request::get('filter_name'));
+            $_SESSION['zensus_admin']['show_sem_class'] = Request::optionArray('show_sem_class');
+
         }
 
         if(!$_SESSION['_default_sem'] || $_SESSION['_default_sem'] == 'all'){
@@ -205,6 +208,15 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             $sem_condition .= " AND (seminare.Name LIKE '%".addslashes($_SESSION['zensus_admin']['filter_name'])."%' ";
             $sem_condition .= " OR seminare.VeranstaltungsNummer LIKE '%".addslashes($_SESSION['zensus_admin']['filter_name'])."%') ";
         }
+        if (!is_array($_SESSION['zensus_admin']['show_sem_class'])){
+            $_SESSION['zensus_admin']['show_sem_class'] = array();
+            $_SESSION['zensus_admin']['show_sem_class'][1] = true;
+        }
+        $show_types = array();
+        foreach (array_keys($_SESSION['zensus_admin']['show_sem_class']) as $show_class) {
+            $show_types = array_merge($show_types , array_keys(SeminarCategories::get($show_class)->getTypes()));
+        }
+        $sem_condition .= " AND seminare.status IN (". DbManager::get()->quote($show_types).") ";
         if(isset($_REQUEST['sortby'])){
             foreach($cols as $col){
                 if($_REQUEST['sortby'] == $col[2]){
@@ -274,7 +286,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             <input type="text" id="filter_name" name="filter_name" value="<?=htmlReady($_SESSION['zensus_admin']['filter_name'])?>" style="vertical-align:middle;">
             &nbsp;<label for="filter_name"><?=_("Name/Nummer der Veranstaltung")?></label>
             </span>
-            <span style="margin-left:10px;font-size:10pt;">
+                <br>
             <input type="checkbox" id="check_eval" name="check_eval" <?=$_SESSION['zensus_admin']['check_eval'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
             &nbsp;<label for="check_eval"><?=_("Evaluation in Zensus aktiviert")?></label>
             </span>
@@ -282,6 +294,13 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             <input type="checkbox" id="plugin_activated" name="plugin_activated" <?=$_SESSION['zensus_admin']['plugin_activated'] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
             &nbsp;<label for="plugin_activated"><?=_("Plugin eingeschaltet")?></label>
             </span>
+                <br>
+                <?php foreach(array_filter(SeminarCategories::getAll(), function($s) {return !$s->studygroup_mode;}) as $sc) :?>
+                    <input type="checkbox" id="show_sem_class_<?php echo $sc->id?>" name="show_sem_class[<?php echo $sc->id?>]" <?=$_SESSION['zensus_admin']['show_sem_class'][$sc->id] ? 'checked' : ''?> value="1" style="vertical-align:middle;">
+                    <label for="show_sem_class_<?php echo $sc->id?>" style="padding-right:10px;">
+                        <?=htmlready($sc->name)?>
+                    </label>
+                <?php endforeach?>
             </div>
             <div style="font-size:10pt;margin:10px;">
             <b><?=_("Angezeigte Veranstaltungen exportieren:")?></b>
