@@ -28,42 +28,61 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // +---------------------------------------------------------------------------+
-require_once "lib/classes/StudipForm.class.php";
 require_once "UniZensusPlugin.class.php";
 require_once 'zensus_xml_func.php';   // XML-Funktionen
 
-if (!function_exists('get_route')) {
-    include 'get_route.php';
-}
+class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCourseAction
+{
 
-class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
-
-    private $user_is_eval_admin;
-    private $zensuspluginid;
+    public $user_is_eval_admin;
+    public $zensuspluginid;
 
 
-    public function __construct() {
-
+    public function __construct()
+    {
         parent::__construct();
+        $this->user_is_eval_admin = $GLOBALS['perm']->have_perm('root') || RolePersistence::isAssignedRole($GLOBALS['user']->id, 'eval_admin') ;
 
-        if ($this->hasPermission()) {
-            $navigation = new Navigation($this->getDisplayname(), PluginEngine::getLink($this, array(), 'show'));
-            if (strpos(get_route(),'unizensusadminplugin') !== false) {
-
-                //Navigation::addItem('/UniZensusAdmin/show', clone $navigation);
-                $token_navigation = new Navigation(_("Export Token"), PluginEngine::getLink($this, array(), 'token'));
-                $subnav = clone $navigation;
-                $subnav->addSubNavigation('show', clone $navigation);
-                $subnav->addSubNavigation('token', $token_navigation);
-                $navigation->addSubNavigation('sub', $subnav);
-                Navigation::addItem('/UniZensusAdmin', $navigation);
-            } else {
-                Navigation::addItem('/start/UniZensusAdmin', clone $navigation);
+        if (Navigation::hasItem("/browse/my_courses") && $GLOBALS['perm']->have_perm('admin')) {
+            $my_courses = Navigation::getItem("/browse/my_courses");
+            $auswahl = new Navigation(_("Unizensus Auswahl"), PluginEngine::getURL($this, array(), "selection"));
+            $my_courses->addSubNavigation('unizensus_selection', $auswahl);
+            if ($this->user_is_eval_admin) {
+                $status = new Navigation(_("Unizensus Status"), PluginEngine::getURL($this, array(), "status"));
+                $my_courses->addSubNavigation('unizensus_status', $status);
             }
-            $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
-            $this->zensuspluginid = $info['id'];
+
         }
 
+        $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
+        $this->zensuspluginid = $info['id'];
+    }
+
+    public function getPluginName()
+    {
+        return _("Lehrevaluation");
+    }
+
+    public function getAdminActionURL()
+    {
+        return PluginEngine::getURL($this, array(), "status");
+    }
+
+    public function useMultimode()
+    {
+        return _('zur Lehrevaluation auswählen');
+    }
+
+    public function getAdminCourseActionTemplate($course_id, $values = null, $semester = null) {
+        $factory = $GLOBALS['template_factory'];
+        $template = $factory->open("shared/string");
+        $input = '
+        <label>
+        <input type="hidden" name="all_sem[]" value="' . $course_id . '">
+        <input name="visibility[' . $course_id . ']" type="checkbox" value="1">
+        </label>';
+        $template->set_attribute("content", $input);
+        return $template;
     }
 
     function getDisplayname() {
