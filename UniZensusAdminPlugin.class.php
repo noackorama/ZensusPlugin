@@ -45,17 +45,17 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
 
         if (Navigation::hasItem("/browse/my_courses") && $GLOBALS['perm']->have_perm('admin')) {
             $my_courses = Navigation::getItem("/browse/my_courses");
-            $auswahl = new Navigation(_("Unizensus Auswahl"), PluginEngine::getURL($this, array(), "selection"));
-            $my_courses->addSubNavigation('unizensus_selection', $auswahl);
+            $auswahl = new Navigation(_("Unizensus Auswahl"), PluginEngine::getURL($this, array(), "zensusadmin/selection"));
+            $my_courses->addSubNavigation('zensusadmin_selection', $auswahl);
             if ($this->user_is_eval_admin) {
-                $status = new Navigation(_("Unizensus Status"), PluginEngine::getURL($this, array(), "status"));
-                $my_courses->addSubNavigation('unizensus_status', $status);
+                $status = new Navigation(_("Unizensus Status"), PluginEngine::getURL($this, array(), "zensusadmin/status"));
+                $my_courses->addSubNavigation('zensusadmin_status', $status);
             }
 
         }
 
-        $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
-        $this->zensuspluginid = $info['id'];
+        $uplugin = PluginManager::getInstance()->getPlugin('UniZensusPlugin');
+        $this->zensuspluginid = $uplugin->getPluginId();
     }
 
     public function getPluginName()
@@ -65,7 +65,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
 
     public function getAdminActionURL()
     {
-        return PluginEngine::getURL($this, array(), "status");
+        return PluginEngine::getURL($this, array(), "zensusadmin/changestatus");
     }
 
     public function useMultimode()
@@ -76,10 +76,11 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
     public function getAdminCourseActionTemplate($course_id, $values = null, $semester = null) {
         $factory = $GLOBALS['template_factory'];
         $template = $factory->open("shared/string");
+        $value = (int)UniZensusPlugin::getDatafieldValue(UniZensusPlugin::$datafield_id_vorgesehen, $course_id);
         $input = '
         <label>
         <input type="hidden" name="all_sem[]" value="' . $course_id . '">
-        <input name="visibility[' . $course_id . ']" type="checkbox" value="1">
+        <input name="zensus[' . $course_id . ']" type="checkbox" value="1" '. ($value ? 'checked' : '') .'>
         </label>';
         $template->set_attribute("content", $input);
         return $template;

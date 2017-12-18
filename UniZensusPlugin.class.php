@@ -10,6 +10,12 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static $datafield_id_auswertung_studierende = '6c691ebe8c034f77a2cf643efce811c9';
     public static $datafield_id_fol = '71d3f2e6ba39e4a2bc2f8551bd599b64';
     public static $datafield_id_flif = 'f298887055ee46a0ab6ac525647aeac1';
+    public static $datafield_id_vorgesehen = '5a005542e66248e2a5560cdd0e00025d';
+    public static $datafield_id_wdhl = '96776f3e6053e6f6bbb6d61a78e33389';
+    public static $datafield_id_fb = '7ae912151565bbcb76c3ac60bbd2f56c';
+    public static $datafield_id_form= 'a07535cf2f8a72df33c12ddfa4b53dde';
+    public static $datafield_id_sprache= '';
+
 
     private $id;
 
