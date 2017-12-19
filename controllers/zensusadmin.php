@@ -43,11 +43,12 @@ class ZensusadminController extends PluginController
     {
         $GLOBALS['perm']->check('admin');
         Navigation::activateItem('/browse/my_courses/zensusadmin_selection');
+        PageLayout::addSqueezePackage('tablesorter');
         $this->institut = Institute::find($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT);
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         $this->data = $this->getSeminareData($this->institut, $this->semester);
-
-
+        $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
+        $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
 
     }
 
@@ -98,7 +99,7 @@ INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id
                 $data[$course_id]['dozenten'] = $dozenten->getUserFullname('no_title_rev');
                 $data[$course_id]['wdhl'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_wdhl,$course_id,''])->content ? 'x' : '';
                 $data[$course_id]['fb'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_fb,$course_id,''])->content;
-                $data[$course_id]['form'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_fb,$course_id,''])->content;
+                $data[$course_id]['form'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_form,$course_id,''])->content;
                 $data[$course_id]['sprache'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_sprache,$course_id,''])->content;
                 $uplugin = PluginManager::getInstance()->getPlugin('UniZensusPlugin');
                 if ($uplugin) {

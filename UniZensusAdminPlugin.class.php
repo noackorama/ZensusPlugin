@@ -54,8 +54,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
 
         }
 
-        $uplugin = PluginManager::getInstance()->getPlugin('UniZensusPlugin');
-        $this->zensuspluginid = $uplugin->getPluginId();
+        $info = PluginManager::getInstance()->getPluginInfo('unizensusplugin');
+        $this->zensuspluginid = $info['id'];
     }
 
     public function getPluginName()
