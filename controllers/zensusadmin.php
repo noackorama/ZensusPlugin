@@ -42,6 +42,9 @@ class ZensusadminController extends PluginController
     public function selection_action()
     {
         $GLOBALS['perm']->check('admin');
+        if (Request::submitted('mail')) {
+            return $this->mail_action();
+        }
         Navigation::activateItem('/browse/my_courses/zensusadmin_selection');
         PageLayout::addSqueezePackage('tablesorter');
         $this->institut = Institute::find($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT);
@@ -49,6 +52,15 @@ class ZensusadminController extends PluginController
         $this->data = $this->getSeminareData($this->institut, $this->semester);
         $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
         $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
+        if (Request::submitted('export')) {
+
+        }
+        if (Request::submitted('save')) {
+            foreach ($_REQUEST['datafields'] as $course_id => $df_ids) {
+            }
+            var_dump($_REQUEST);
+            die();
+        }
 
     }
 
@@ -58,9 +70,22 @@ class ZensusadminController extends PluginController
             throw new AccessDeniedException();
         }
         Navigation::activateItem('/browse/my_courses/zensusadmin_status');
+    }
 
+    public function mail_action()
+    {
+        $GLOBALS['perm']->check('admin');
+        $user_sql = "SELECT DISTINCT username " .
+            "FROM auth_user_md5 u " .
+            "INNER JOIN seminar_user su USING(user_id) " .
+            "WHERE su.status = 'dozent' " .
+            "AND su.Seminar_id IN (?) " .
+            "ORDER BY Nachname,Vorname";
 
-
+        $selected_teilnehmer = DBManager::get()->fetchFirst($user_sql, [array_keys(Request::getArray('selected_courses'))]);
+        $_SESSION['sms_data'] = array();
+        $_SESSION['sms_data']['p_rec'] = array_filter($selected_teilnehmer);
+        $this->redirect(URLHelper::getURL('dispatch.php/messages/write', array('default_subject' => _('Hinweis zur Lehrevaluation'),'default_tags' => "Lehrevaluation", 'emailrequest' => 1)));
     }
 
     private function getSeminareData($institut_id, $semester_id)

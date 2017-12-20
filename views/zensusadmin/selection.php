@@ -1,7 +1,7 @@
 <?php
 echo $this->render_partial('zensusadmin/_widgets.php');
 ?>
-<form action="" method="post">
+<form action="<?=$controller->link_for()?>" method="post">
     <?= CSRFProtection::tokenTag() ?>
     <table class="default default sortable-table" data-sortlist="[[0, 0]]">
         <caption>
@@ -46,6 +46,10 @@ echo $this->render_partial('zensusadmin/_widgets.php');
         <? endforeach ?>
         </tbody>
     </table>
-
+    <div>
+        <?=Studip\Button::create(_("Nachricht an Lehrende"), 'mail', ['onClick' => 'STUDIP.Dialog.fromElement(this,{});return false;']);?>
+        <?=Studip\Button::createAccept(_("Speichern"), 'save');?>
+    </div>
+</form>
 
 
