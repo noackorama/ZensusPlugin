@@ -17,6 +17,7 @@ echo $this->render_partial('zensusadmin/_widgets.php');
         <th data-sort="text"><?=_("Nr.")?></th>
         <th data-sort="text"><?=_("Titel")?></th>
         <th data-sort="text"><?=_("Lehrende")?></th>
+        <th data-sort="text"><?=_("TN")?></th>
         <th data-sort="htmldata"><?=_("Form der Teilnahme")?></th>
         <th data-sort="text"><?=_("Sprache")?></th>
         <th data-sort="htmldata"><?=_("Art des Fragebogens")?></th>
@@ -32,6 +33,7 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <td><?=htmlready($r['nr'])?></td>
             <td><?=htmlready($r['name'])?></td>
             <td><?=htmlready(join(',', $r['dozenten']))?></td>
+            <td><?=htmlready($r['teilnehmer_anzahl_aktuell'])?></td>
             <td data-sort-table="<?=htmlready($r['fb'])?>">
                 <?=DataFieldEntry::createDataFieldEntry($datafield_fb, $course_id, $r['fb'])->getHTML("datafields[$course_id]");?>
 

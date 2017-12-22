@@ -252,13 +252,14 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         $ret['fol_course'] = (int)self::getDatafieldValue(self::$datafield_id_fol, $seminar_id);
         $ret['flif_course'] = (int)self::getDatafieldValue(self::$datafield_id_flif, $seminar_id);
         $ret['eval_participants'] = self::getDatafieldValue(self::$datafield_id_teilnehmer, $seminar_id);
-        foreach(Seminar::getInstance($seminar_id)->getMembers('dozent') as $dozent) {
+        $dozenten = CourseMember::findByCourseAndStatus($seminar_id, 'dozent');
+        foreach($dozenten  as $dozent) {
             $eval_public[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $seminar_id, $dozent['user_id']);
             $eval_stored[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_speichern, $seminar_id, $dozent['user_id']);
             $eval_public_stud[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $seminar_id, $dozent['user_id']);
         }
         $ret['eval_public'] = count($eval_public) ? min($eval_public) : 0;
-        $ret['eval_stored'] = array_sum($eval_stored) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
+        $ret['eval_stored'] = array_sum($eval_stored) == count($dozenten);
         $ret['eval_public_stud'] = count($eval_public_stud) ? min($eval_public_stud) : 0;
         return $ret;
     }
