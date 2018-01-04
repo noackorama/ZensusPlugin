@@ -1,4 +1,22 @@
 <?php
+$widget = new OptionsWidget();
+$widget->setTitle(_("Filter"));
+$widget->addCheckbox(
+    _("Evaluation in Zensus aktiviert"),
+    $filter['zensus_activated'],
+    $controller->link_for('/status', ['toggle_zensus_active' => 1])
+);
+$widget->addCheckbox(
+    _("Evaluation in Zensus deaktiviert"),
+    $filter['zensus_deactivated'],
+    $controller->link_for('/status', ['toggle_zensus_nonactive' => 1])
+);
+$widget->addCheckbox(
+    _("Plugin aktiv"),
+    $filter['plugin_activated'],
+    $controller->link_for('/status', ['toggle_plugin_active' => 1])
+);
+Sidebar::Get()->addWidget($widget);
 echo $this->render_partial('zensusadmin/_widgets.php');
 ?>
 
@@ -38,7 +56,6 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <td><?=htmlready($r['zensus_numvotes'])?></td>
             <td><?=htmlready($r['zensus_status'])?></td>
             <td><?=htmlready($r['plugin_activated'])?></td>
-            <td><?=htmlready($r['zensus_numvotes'])?></td>
             <td><?=htmlready($r['eval_public'])?></td>
             <td><?=htmlready($r['eval_public_stud'])?></td>
             <td data-sort-table="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time']?></td>
@@ -49,7 +66,8 @@ echo $this->render_partial('zensusadmin/_widgets.php');
     </table>
     <div>
         <?=Studip\Button::create(_("Nachricht an Lehrende"), 'mail', ['onClick' => 'STUDIP.Dialog.fromElement(this,{});return false;']);?>
-        <?=Studip\Button::createAccept(_("Speichern"), 'save');?>
+        <?=Studip\Button::create(_("Plugin aktivieren/deaktivieren"), 'activate_plugin', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
+        <?=Studip\Button::create(_("Start/Endzeit setzen"), 'set_timespan', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
     </div>
 </form>
 

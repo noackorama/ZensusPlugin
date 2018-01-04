@@ -1,4 +1,5 @@
 <?php
+
 echo $this->render_partial('zensusadmin/_widgets.php');
 ?>
 <form action="<?=$controller->link_for()?>" method="post">

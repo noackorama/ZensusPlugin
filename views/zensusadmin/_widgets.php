@@ -1,22 +1,29 @@
 <?php
 
-
-
-
-
 $list = new SelectWidget(_('Einrichtung'), URLHelper::getURL("?"), 'institut_id');
-if ($GLOBALS['perm']->have_perm('root')) {
-    $list->addElement(new SelectElement('all', _('Alle'), $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT === 'all'), 'select-all');
-}
-foreach (Institute::getMyInstitutes() as $institut) {
-    $list->addElement(
-        new SelectElement(
-            $institut['Institut_id'],
-            (!$institut['is_fak'] ? "  " : "") . $institut['Name'],
-            $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT == $institut['Institut_id']
-        ),
-        'select-' . $institut['Name']
-    );
+if ($plugin->user_is_eval_admin) {
+    $list->addElement(new SelectElement('all', _('Alle'), $filter['institute'] === 'all'), 'select-all');
+    foreach (Institute::getInstitutes() as $institut) {
+        $list->addElement(
+            new SelectElement(
+                $institut['Institut_id'],
+                (!$institut['is_fak'] ? "  " : "") . $institut['Name'],
+                $filter['institute'] === $institut['Institut_id']
+            ),
+            'select-' . $institut['Name']
+        );
+    }
+} else {
+    foreach (Institute::getMyInstitutes() as $institut) {
+        $list->addElement(
+            new SelectElement(
+                $institut['Institut_id'],
+                (!$institut['is_fak'] ? "  " : "") . $institut['Name'],
+                $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT == $institut['Institut_id']
+            ),
+            'select-' . $institut['Name']
+        );
+    }
 }
 Sidebar::Get()->addWidget($list);
 

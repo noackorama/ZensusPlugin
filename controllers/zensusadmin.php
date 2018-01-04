@@ -5,18 +5,32 @@ class ZensusadminController extends PluginController
     function before_filter(&$action, &$args)
     {
         parent::before_filter($action, $args);
+        $this->filter =& $_SESSION[__CLASS__]['filter'];
         if (Request::option("institut_id")) {
             $GLOBALS['user']->cfg->store("MY_INSTITUTES_DEFAULT", Request::option("institut_id"));
+            $this->filter['institute'] = Request::option("institut_id");
         }
         if (Request::option("semester_id")) {
             $GLOBALS['user']->cfg->store("MY_COURSES_SELECTED_CYCLE", Request::option("semester_id"));
         }
-        if (!$GLOBALS['perm']->have_perm("root")) {
+        if (!$this->plugin->user_is_eval_admin) {
             $institut_ids = array_map(function ($data) {
                 return $data['Institut_id'];
             }, Institute::getMyInstitutes());
             if (!in_array($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $institut_ids)) {
                 $GLOBALS['user']->cfg->store("MY_INSTITUTES_DEFAULT", $institut_ids[0]);
+            }
+        } else {
+            if (Request::submitted('toggle_zensus_active')) {
+                $this->filter['zensus_activated'] = $this->filter['zensus_activated'] ? 0 : 1;
+                $this->filter['zensus_deactivated'] = 0;
+            }
+            if (Request::submitted('toggle_zensus_nonactive')) {
+                $this->filter['zensus_activated'] = 0;
+                $this->filter['zensus_deactivated'] = $this->filter['zensus_deactivated'] ? 0 : 1;
+            }
+            if (Request::submitted('toggle_plugin_active')) {
+                $this->filter['plugin_activated'] = $this->filter['plugin_activated'] ? 0 : 1;
             }
         }
     }
@@ -47,7 +61,7 @@ class ZensusadminController extends PluginController
         }
         Navigation::activateItem('/browse/my_courses/zensusadmin_selection');
         PageLayout::addSqueezePackage('tablesorter');
-        $this->institut = Institute::find($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT);
+
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
         $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
@@ -66,9 +80,9 @@ class ZensusadminController extends PluginController
                 PageLayout::postSuccess(_("Änderungen gespeichert."));
             }
         }
-        $this->data = $this->getSeminareData($this->institut, $this->semester);
+        $this->data = $this->getSeminareData($this->plugin->user_is_eval_admin ? $this->filter['institute'] :  $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $this->semester);
         if (Request::submitted('export')) {
-            $captions = array('Institut', 'Nr.', 'Title', 'Lehrende', 'TN', 'Form der Teilnahme', 'Sprache', 'Art des Fragebogens', 'Wdh', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
+            $captions = array('Institut', 'Nr.', 'Titel', 'Lehrende', 'TN', 'Form der Teilnahme', 'Sprache', 'Art des Fragebogens', 'Wdh', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
             $csvdata = array();
             $c = 0;
             foreach($this->data as $course_id => $r) {
@@ -87,7 +101,7 @@ class ZensusadminController extends PluginController
             }
             $tmpname = md5(uniqid('tmp'));
             if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
-                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation.csv', 4, 'force'));
+                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation_Auswahl.csv', 4, 'force'));
                 return;
             }
         }
@@ -103,13 +117,71 @@ class ZensusadminController extends PluginController
         if (Request::submitted('mail')) {
             return $this->mail_action();
         }
+        if (Request::submitted('activate_plugin')) {
+            return $this->activate_plugin_action();
+        }
+        if (Request::submitted('set_timespan')) {
+            return $this->set_timespan_action();
+        }
         PageLayout::addSqueezePackage('tablesorter');
-        $this->institut = Institute::find($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT);
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         Navigation::activateItem('/browse/my_courses/zensusadmin_status');
-        $this->data = $this->getSeminareData($this->institut, $this->semester, true);
+        $this->data = $this->getSeminareData($this->filter['institute'], $this->semester, true, $this->filter);
 
 
+        if (Request::submitted('export')) {
+            $captions = array('Nr.', 'Titel', 'Lehrende', 'TN', 'Zensus TN', 'Zensus Status', 'Plugin aktiv', 'Ergebnis', 'Studierenden', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
+            $csvdata = array();
+            $c = 0;
+            foreach ($this->data as $course_id => $r) {
+                $csvdata[$c][] = $r['nr'];
+                $csvdata[$c][] = $r['name'];
+                $csvdata[$c][] = join(',', $r['dozenten']);
+                $csvdata[$c][] = $r['teilnehmer_anzahl_aktuell'];
+                $csvdata[$c][] = $r['zensus_numvotes'];
+                $csvdata[$c][] = $r['zensus_status'];
+                $csvdata[$c][] = $r['plugin_activated'];
+                $csvdata[$c][] = $r['eval_public'];
+                $csvdata[$c][] = $r['eval_public_stud'];
+                $csvdata[$c][] = $r['eval_start_time'];
+                $csvdata[$c][] = $r['eval_end_time'];
+                ++$c;
+            }
+            $tmpname = md5(uniqid('tmp'));
+            if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
+                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation_Status.csv', 4, 'force'));
+                return;
+            }
+        }
+
+    }
+
+    public function set_timespan_action()
+    {
+        if (!$this->plugin->user_is_eval_admin) {
+            throw new AccessDeniedException();
+        }
+        $this->render_template('zensusadmin/set_timespan');
+    }
+
+    public function activate_plugin_action()
+    {
+        if (!$this->plugin->user_is_eval_admin) {
+            throw new AccessDeniedException();
+        }
+        $this->courses = array_keys(Request::getArray('selected_courses'));
+        if (Request::submitted('save')) {
+            CSRFProtection::verifyUnsafeRequest();
+            $set_to_status = Request::get('plugin_active') ? 'on' : 'off';
+            $db = DBManager::get();
+            foreach($this->courses as $seminar_id) {
+                $db->execute("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES (?,?,?)",
+                    [$this->plugin->zensuspluginid, 'sem' . $seminar_id, $set_to_status]);
+            }
+            PageLayout::postSuccess(_("Pluginstatus wurde geändert."));
+            return $this->redirect($this->url_for('/status'));
+        }
+        $this->render_template('zensusadmin/activate_plugin');
     }
 
     public function mail_action()
@@ -128,30 +200,39 @@ class ZensusadminController extends PluginController
         $this->redirect(URLHelper::getURL('dispatch.php/messages/write', array('default_subject' => _('Hinweis zur Lehrevaluation'),'default_tags' => "Lehrevaluation", 'emailrequest' => 1)));
     }
 
-    private function getSeminareData($institut_id, $semester_id, $fetch_zensus_data = false)
+    private function getSeminareData($institut_id, $semester_id, $fetch_zensus_data = false, $filter = [])
     {
-        $institut = is_object($institut_id) ? $institut_id : Institute::find($institut_id);
+        if ($institut_id != 'all') $institut = is_object($institut_id) ? $institut_id : Institute::find($institut_id);
         $semester = is_object($semester_id) ? $semester_id : Semester::find($semester_id);
         $datafield_id = UniZensusPlugin::$datafield_id_vorgesehen;
 
         $data = [];
         $db = DBManager::get();
 
-        if ($institut && $semester) {
+        if ($semester) {
             $seminare_condition = " AND seminare.start_time <=".(int)$semester["beginn"]." AND (".(int)$semester["beginn"]." <= (seminare.start_time + seminare.duration_time) OR seminare.duration_time = -1) ";
-            if ($institut->is_fak) {
-                $query = "SELECT seminare.Name as name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer as nr, seminare.Institut_id as institut_id FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
+            if ($institut) {
+                if ($institut->is_fak) {
+                    $query = "SELECT seminare.Name as name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer as nr, seminare.Institut_id as institut_id FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
         INNER JOIN Institute ON seminar_inst.institut_id = Institute.Institut_id
         INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id = '{$datafield_id}' AND content = '1'
          WHERE Institute.fakultaets_id  =  '{$institut->id}'  $seminare_condition
         GROUP BY seminare.Seminar_id ORDER BY VeranstaltungsNummer,Name";
-            } else {
-                $query = "SELECT seminare.Name as name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer as nr, seminare.Institut_id as institut_id FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
+                } else {
+                    $query = "SELECT seminare.Name as name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer as nr, seminare.Institut_id as institut_id FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
 INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id = '{$datafield_id}' AND content = '1'
         WHERE seminar_inst.institut_id = '{$institut->id}'  $seminare_condition
         GROUP BY seminare.Seminar_id ORDER BY VeranstaltungsNummer,Name";
+                    $institutes = [$institut->id => $institut];
+                }
+            } elseif ($institut_id == 'all') {
+                $query = "SELECT seminare.Name as name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer as nr, seminare.Institut_id as institut_id FROM seminare 
+INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id = '{$datafield_id}' AND content = '1'
+        WHERE 1 $seminare_condition
+        GROUP BY seminare.Seminar_id ORDER BY VeranstaltungsNummer,Name";
+            } else {
+                return [];
             }
-            $institutes = [$institut->id => $institut];
             foreach ($db->fetchAll($query) as $r) {
                 $course_id = $r['seminar_id'];
                 $data[$course_id] = $r;
@@ -186,6 +267,18 @@ INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id
                             $data[$course_id]['zensus_numvotes'] = $uplugin->course_status['numvotes'];
                         }
                     }
+                }
+                if (@$filter['zensus_activated'] == 1
+                    && !in_array($data[$course_id]['zensus_status'], ['prepare','run','analyze','finished'])) {
+                    unset($data[$course_id]);
+                }
+                if (@$filter['zensus_deactivated'] == 1
+                    && in_array($data[$course_id]['zensus_status'], ['prepare','run','analyze','finished'])) {
+                    unset($data[$course_id]);
+                }
+                if (@$filter['plugin_activated'] == 1
+                    && !@$data[$course_id]['plugin_activated']) {
+                    unset($data[$course_id]);
                 }
             }
             return $data;
