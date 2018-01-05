@@ -125,20 +125,20 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         }
         if (
             ($this->course_status['status']
-            && strpos($this->course_status['status'], 'error') === false
-            && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['status'] == 'finished'
-                ) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
+                && strpos($this->course_status['status'], 'error') === false
+                && ( (($this->course_status['preview'] || $this->course_status['questionnaire'] || $this->course_status['status'] == 'finished'
+                    ) && $GLOBALS['perm']->have_studip_perm('autor' , $this->getId()))
                 )
-            && (!isset($this->course_status['time_frame'])
-                || ($this->course_status['time_frame']['begin'] < time()
-                    && $this->course_status['time_frame']['end'] > time()
+                && (!isset($this->course_status['time_frame'])
+                    || ($this->course_status['time_frame']['begin'] < time()
+                        && $this->course_status['time_frame']['end'] > time()
                     )
-                || ($this->course_status['status'] == 'finished')
+                    || ($this->course_status['status'] == 'finished')
                 )
             )
             || $GLOBALS['perm']->have_perm('admin')
             || $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())
-            ) return true;
+        ) return true;
         else return false;
     }
 
@@ -153,26 +153,26 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
 
     function getCourseStatusMessage(){
         switch ($this->course_status['status']) {
-                case 'prepare':
-                    return _("Die Evaluation wird vorbereitet.");
+            case 'prepare':
+                return _("Die Evaluation wird vorbereitet.");
                 break;
-                case 'run':
-                    if (isset($this->course_status['time_frame']) &&
+            case 'run':
+                if (isset($this->course_status['time_frame']) &&
                     ($this->course_status['time_frame']['begin'] > time() || $this->course_status['time_frame']['end'] < time())){
-                        return _("Außerhalb des Evaluierungszeitraums.");
-                    } else {
-                        return _("Die Evaluation läuft.");
-                    }
+                    return _("Außerhalb des Evaluierungszeitraums.");
+                } else {
+                    return _("Die Evaluation läuft.");
+                }
                 break;
-                case 'analyze':
-                    return _("Die Evaluation wird ausgewertet.");
+            case 'analyze':
+                return _("Die Evaluation wird ausgewertet.");
                 break;
-                case 'finished':
-                    return _("Die Evaluation ist abgeschlossen.");
+            case 'finished':
+                return _("Die Evaluation ist abgeschlossen.");
                 break;
-                default:
-                    return _("Unbekannter Status.");
-            }
+            default:
+                return _("Unbekannter Status.");
+        }
     }
 
     function getCourseEvaluationTimeframe()
@@ -229,7 +229,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static function setDatafieldValue($content, $datafield_id, $range_id, $sec_range_id = '')
     {
         $db = DBManager::get();
-        $p = $db->prepare("REPLACE INTO datafields_entries (content,datafield_id,range_id,sec_range_id) VALUES (?,?,?,?)");
+        $p = $db->prepare("REPLACE INTO datafields_entries (content,datafield_id,range_id,sec_range_id,chdate) VALUES (?,?,?,?,UNIX_TIMESTAMP())");
         return $p->execute(array($content, $datafield_id, $range_id, $sec_range_id));
     }
 
@@ -246,13 +246,14 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         $ret['fol_course'] = (int)self::getDatafieldValue(self::$datafield_id_fol, $seminar_id);
         $ret['flif_course'] = (int)self::getDatafieldValue(self::$datafield_id_flif, $seminar_id);
         $ret['eval_participants'] = self::getDatafieldValue(self::$datafield_id_teilnehmer, $seminar_id);
-        foreach(Seminar::getInstance($seminar_id)->getMembers('dozent') as $dozent) {
+        $dozenten = CourseMember::findByCourseAndStatus($seminar_id, 'dozent');
+        foreach($dozenten  as $dozent) {
             $eval_public[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_oeffentlich, $seminar_id, $dozent['user_id']);
             $eval_stored[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_speichern, $seminar_id, $dozent['user_id']);
             $eval_public_stud[] = (int)self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $seminar_id, $dozent['user_id']);
         }
         $ret['eval_public'] = count($eval_public) ? min($eval_public) : 0;
-        $ret['eval_stored'] = array_sum($eval_stored) == count(Seminar::getInstance($seminar_id)->getMembers('dozent'));
+        $ret['eval_stored'] = array_sum($eval_stored) == count($dozenten);
         $ret['eval_public_stud'] = count($eval_public_stud) ? min($eval_public_stud) : 0;
         return $ret;
     }
@@ -274,8 +275,19 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 self::setDatafieldValue(Request::int('eval_public'), self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id);
                 self::setDatafieldValue(Request::int('eval_stored'), self::$datafield_id_auswertung_speichern, $this->getID(), $GLOBALS['user']->id);
                 self::setDatafieldValue(Request::int('eval_public_stud'), self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id);
-                $new_start = strtotime(Request::get('time_frame1'));
-                $new_end = strtotime(Request::get('time_frame2'));
+                $new_start = Request::get('time_frame1') ? strtotime(Request::get('time_frame1')) : null;
+                $new_end = Request::get('time_frame2') ? strtotime(Request::get('time_frame2')) : null;
+                $old_end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
+                $old_start = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
+                if ($new_end != $old_end || $new_start != $old_start) {
+                    $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
+                        Course::findCurrent()->getFullname('number-name-semester'),
+                        User::findCurrent()->getFullname('full_rev_username'),
+                        strftime('%x', $old_start) . ' - ' . strftime('%x', $old_end),
+                        strftime('%x', $new_start) . ' - ' . strftime('%x', $new_end)
+                    );
+                    StudipMail::sendMessage('evaluation@uni-oldenburg.de', 'Zeitpunkt der Evaluation geändert', $mailbody);
+                }
                 if ($new_start && $new_end && $new_end >= $new_start) {
                     self::setDatafieldValue(date('Y-m-d', $new_end), md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
                     self::setDatafieldValue(date('Y-m-d', $new_start), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
@@ -313,11 +325,15 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Diese Teilnehmeranzahl wird zur Auswertung der Evaluation herangezogen. Wenn Sie einen neuen Wert eingeben, wird Ihnen dieser nach einer nächtlichen Aktualisierung der Daten am nächsten Tag in dem Ergebnis-PDF angezeigt. Wenn Sie keinen anderen Wert eingeben, wird die Anzahl der Teilnehmer aus Stud.IP benutzt (zur Zeit: %s).")
-                    , count(Seminar::getInstance($this->getId())->getMembers('autor')));
+                , count(Seminar::getInstance($this->getId())->getMembers('autor')));
             echo '</div>';
             echo '</td></tr>';
 
-            echo '<tr><td colspan="3"><hr></td></tr>';
+            echo '<tr><td colspan="3"><hr>';
+            echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
+            echo _('Gemäß §3(8) der Ordnung zur Durchführung der studentischen Lehrveranstaltungsevaluationen sollen die Ergebnisse der Lehrveranstaltungsevaluation den VeranstaltaltungsteilnehmerInnen in geeigneter Form duch die Lehrenden vorgestellt werden und mit ihnen besprochen werden, gegebenenfalls können Verbesserungsvorschläge ausgetauscht werden.');
+            echo '</div>';
+            echo '</td></tr>';
 
             echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_public_stud">' ._("Ergebnisweiterleitung an Studierende") . '</label>';
@@ -336,7 +352,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Keine Ergebnisweiterleitung.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+                , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
             echo '<tr><td>';
@@ -346,7 +362,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse <u>inklusive</u> der Freitextantworten <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+                , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
             echo '<tr><td>';
@@ -356,7 +372,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse <u>ohne</u> die Freitextantworten <b>an die Studierenden</b> dieser Lehrveranstaltung bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+                , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
             /*echo '<input name="eval_public_stud" id="eval_public_stud" type="checkbox" value="1" '.(self::getDatafieldValue(self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id) ? 'checked' : '').' >';
@@ -367,7 +383,11 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</div>';
             echo '</td></tr>';
             */
-            echo '<tr><td colspan="3"><hr></td></tr>';
+            echo '<tr><td colspan="3"><hr>';
+            echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
+            echo _('Gemäß §1(2c) der Ordnung zur Durchführung der studentischen Lehrveranstaltungsevaluationen findet die regelmäßige Evaluation universitätsweit statt und dient einer Rückmeldung an die Hochschulleitung und die Studiendekaninnen oder Studiendekane zur Aufgabenerfüllung nach NHG §§37 Abs. 1; 45 Abs. 3 und damit ggf. Vorschläge zur Verbesserung gemacht werden können.');
+            echo '</div>';
+            echo '</td></tr>';
 
             echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_public">' ._("Ergebnisweiterleitung an Studiendekanin/Studiendekan sowie Evaluationsbeauftragte/n") . '</label>';
@@ -386,7 +406,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Keine Ergebnisweiterleitung.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+                , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
             echo '<tr><td>';
@@ -396,13 +416,17 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Mit der <b>Übermittlung</b> der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) <b>an die Studiendekanin bzw. den Studiendekan und die Evaluationsbeauftragte bzw. den Evaluationsbeauftragten</b> bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+                , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
 
-               echo '<tr><td colspan="3"><hr></td></tr>';
+            echo '<tr><td colspan="3"><hr>';
+            echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
+            echo _('Sie haben die Möglichkeit, dass die Ergebnisse dieser Lehrveranstaltungsevaluation von der internen Evaluation dauerhaft gespeichert werden, so dass sie diese jederzeit anfordern können. (Mail an <a href="mailto:evaluation@uni-oldenburg.de">evaluation@uni-oldenburg.de</a>). Ansonsten werden diese Ergebnisse nicht weitervervendet und gelöscht.');
+            echo '</div>';
+            echo '</td></tr>';
 
-               echo '<tr><td>';
+            echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_stored">' ._("Ergebnis dauerhaft speichern") . '</label>';
             if (count($lehrende)) {
                 echo '<ul style="font-size:smaller">';
@@ -419,7 +443,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo sprintf(_("Mit der dauerhaften Speicherung der Auswertung der Ergebnisse der studentischen Lehrveranstaltungsevaluation aus der Lehrveranstaltung (%s) bin ich einverstanden. Mir ist bekannt, dass ich meine Einwilligung jederzeit ohne Angabe von Gründen mit Wirkung für die Zukunft widerrufen kann.")
-            , htmlready(Seminar::getInstance($this->getId())->getName()) );
+                , htmlready(Seminar::getInstance($this->getId())->getName()) );
             echo '</div>';
             echo '</td></tr>';
 
@@ -503,7 +527,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 if ($results_available
                     && $GLOBALS['perm']->get_studip_perm($this->getId()) == 'autor'
                     && !$this->course_status['questionnaire']
-                    ) {
+                ) {
                     if ($additional_data['eval_public_stud']) {
                         $checked_user_id = $GLOBALS['user']->id;
                         foreach (Seminar::getInstance($this->getId())->getMembers('dozent') as $m) {
