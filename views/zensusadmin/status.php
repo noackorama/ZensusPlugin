@@ -1,4 +1,13 @@
 <?php
+$widget = new ActionsWidget();
+$widget->addLink(
+        _('Token erzeugen'),
+        $controller->url_for('/token'),
+        Icon::create('add'),
+        ['data-dialog' => 1]
+    );
+Sidebar::Get()->addWidget($widget);
+
 $widget = new OptionsWidget();
 $widget->setTitle(_("Filter"));
 $widget->addCheckbox(
@@ -17,6 +26,7 @@ $widget->addCheckbox(
     $controller->link_for('/status', ['toggle_plugin_active' => 1])
 );
 Sidebar::Get()->addWidget($widget);
+
 echo $this->render_partial('zensusadmin/_widgets.php');
 ?>
 
@@ -50,12 +60,12 @@ echo $this->render_partial('zensusadmin/_widgets.php');
         <tr>
             <td><input type="checkbox" name="selected_courses[<?=htmlready($course_id)?>]" value="1"></td>
             <td><?=htmlready($r['nr'])?></td>
-            <td><?=htmlready($r['name'])?></td>
+            <td><?=htmlready($r['name'])?><a href="<?=URLHelper::getLink('dispatch.php/course/details', ['sem_id' => $course_id])?>" data-dialog><?=Icon::create('info-circle', 'inactive', ['title' => _('Veranstaltungsdetails')])?></a></td>
             <td><?=htmlready(join(',', $r['dozenten']))?></td>
             <td><?=htmlready($r['teilnehmer_anzahl_aktuell'])?></td>
             <td><?=htmlready($r['zensus_numvotes'])?></td>
             <td><?=htmlready($r['zensus_status'])?></td>
-            <td><?=htmlready($r['plugin_activated'])?></td>
+            <td><?=$r['plugin_activated'] ? _('Ja') : _('Nein')?></td>
             <td><?=htmlready($r['eval_public'])?></td>
             <td><?=htmlready($r['eval_public_stud'])?></td>
             <td data-sort-table="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time']?></td>

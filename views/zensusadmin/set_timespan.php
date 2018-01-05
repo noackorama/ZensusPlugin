@@ -1,6 +1,7 @@
 <h1><?=sprintf(_('Start- und Endzeiten für %s Veranstaltungen setzen'), count($courses))?></h1>
 <form class="default" action="<?=$controller->link_for('/set_timespan')?>" method="post">
     <?= CSRFProtection::tokenTag() ?>
+    <?=addHiddenFields('selected_courses', $courses)?>
     <fieldset>
         <label>
             <?= _('Start') ?>

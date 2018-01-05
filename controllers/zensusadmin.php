@@ -161,6 +161,24 @@ class ZensusadminController extends PluginController
         if (!$this->plugin->user_is_eval_admin) {
             throw new AccessDeniedException();
         }
+        $this->courses = Request::getArray('selected_courses');
+        if (Request::submitted('save')) {
+            CSRFProtection::verifyUnsafeRequest();
+
+            $startdate = Request::get('startdate') ? strftime('%Y-%m-%d', strtotime(Request::get('startdate'))) : null;
+            $enddate = Request::get('enddate') ? strftime('%Y-%m-%d', strtotime(Request::get('enddate'))) : null;
+            $db = DBManager::get();
+            foreach(array_keys($this->courses) as $seminar_id) {
+                if ($startdate) {
+                    $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $startdate]);
+                }
+                if ($enddate) {
+                    $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_END_EVALUATION'), $enddate]);
+                }
+            }
+            PageLayout::postSuccess(_("Start- Endzeiten wurden geändert."));
+            return $this->redirect($this->url_for('/status'));
+        }
         $this->render_template('zensusadmin/set_timespan');
     }
 
@@ -169,12 +187,12 @@ class ZensusadminController extends PluginController
         if (!$this->plugin->user_is_eval_admin) {
             throw new AccessDeniedException();
         }
-        $this->courses = array_keys(Request::getArray('selected_courses'));
+        $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
             $set_to_status = Request::get('plugin_active') ? 'on' : 'off';
             $db = DBManager::get();
-            foreach($this->courses as $seminar_id) {
+            foreach(array_keys($this->courses) as $seminar_id) {
                 $db->execute("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES (?,?,?)",
                     [$this->plugin->zensuspluginid, 'sem' . $seminar_id, $set_to_status]);
             }
@@ -182,6 +200,17 @@ class ZensusadminController extends PluginController
             return $this->redirect($this->url_for('/status'));
         }
         $this->render_template('zensusadmin/activate_plugin');
+    }
+
+    public function token_action()
+    {
+        if (!$this->plugin->user_is_eval_admin) {
+            throw new AccessDeniedException();
+        }
+        if (Request::submitted('generate_token')) {
+            UserConfig::get($GLOBALS['user']->id)->store('UNIZENSUSPLUGIN_AUTH_TOKEN', md5(uniqid('ZensusToken',1)));
+            PageLayout::postSuccess(_("Ein neues Token wurde erzeugt."));
+        }
     }
 
     public function mail_action()

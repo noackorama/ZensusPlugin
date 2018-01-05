@@ -352,6 +352,9 @@ function zensus_export_sem($inst_id, $ex_sem_id = "all", $o_mode = 'direct')
     global $xml_file, $xml_names_lecture, $xml_groupnames_lecture, $SEM_TYPE, $SEM_CLASS, $persons;
     global $ex_sem, $ex_only_homeinst,$ex_sem_class, $ex_only_visible;
 
+    $datafield_id = UniZensusPlugin::$datafield_id_vorgesehen;
+
+
     $db=new DB_Seminar;
     $db2=new DB_Seminar;
     $db3=new DB_Seminar;
@@ -383,12 +386,14 @@ function zensus_export_sem($inst_id, $ex_sem_id = "all", $o_mode = 'direct')
     if($ex_only_homeinst){
         $db->query("SELECT seminare.*,Seminar_id as seminar_id, Institute.Name as heimateinrichtung FROM seminare
                 LEFT JOIN Institute ON seminare.Institut_id=Institute.Institut_id
+                INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id = '{$datafield_id}' AND content = '1'
                 WHERE seminare.Institut_id = '" . $inst_id . "' " . $addquery . "
                 ORDER BY " . $order);
     } else {
         $db->query("SELECT seminare.*,seminar_inst.seminar_id, Institute.Name as heimateinrichtung FROM seminar_inst
                 LEFT JOIN seminare USING (Seminar_id)
                 LEFT JOIN Institute ON seminare.Institut_id=Institute.Institut_id
+                INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id = '{$datafield_id}' AND content = '1'
                 WHERE seminar_inst.Institut_id = '" . $inst_id . "' " . $addquery . "
                 ORDER BY " . $order);
     }

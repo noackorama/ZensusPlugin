@@ -251,6 +251,9 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         $eval_public = $eval_stored =  $eval_public_stud = array();
         $ret['fol_course'] = (int)self::getDatafieldValue(self::$datafield_id_fol, $seminar_id);
         $ret['flif_course'] = (int)self::getDatafieldValue(self::$datafield_id_flif, $seminar_id);
+        $ret['wdhl'] = self::getDatafieldValue(self::$datafield_id_wdhl, $seminar_id);
+        $ret['fb'] = self::getDatafieldValue(self::$datafield_id_fb, $seminar_id);
+        $ret['form'] = self::getDatafieldValue(self::$datafield_id_form, $seminar_id);
         $ret['eval_participants'] = self::getDatafieldValue(self::$datafield_id_teilnehmer, $seminar_id);
         $dozenten = CourseMember::findByCourseAndStatus($seminar_id, 'dozent');
         foreach($dozenten  as $dozent) {
