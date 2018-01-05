@@ -235,7 +235,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static function setDatafieldValue($content, $datafield_id, $range_id, $sec_range_id = '')
     {
         $db = DBManager::get();
-        $p = $db->prepare("REPLACE INTO datafields_entries (content,datafield_id,range_id,sec_range_id) VALUES (?,?,?,?)");
+        $p = $db->prepare("REPLACE INTO datafields_entries (content,datafield_id,range_id,sec_range_id,chdate) VALUES (?,?,?,?,UNIX_TIMESTAMP())");
         return $p->execute(array($content, $datafield_id, $range_id, $sec_range_id));
     }
 
@@ -284,8 +284,19 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 self::setDatafieldValue(Request::int('eval_public'), self::$datafield_id_auswertung_oeffentlich, $this->getID(), $GLOBALS['user']->id);
                 self::setDatafieldValue(Request::int('eval_stored'), self::$datafield_id_auswertung_speichern, $this->getID(), $GLOBALS['user']->id);
                 self::setDatafieldValue(Request::int('eval_public_stud'), self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id);
-                $new_start = strtotime(Request::get('time_frame1'));
-                $new_end = strtotime(Request::get('time_frame2'));
+                $new_start = Request::get('time_frame1') ? strtotime(Request::get('time_frame1')) : null;
+                $new_end = Request::get('time_frame2') ? strtotime(Request::get('time_frame2')) : null;
+                $old_end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
+                $old_start = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
+                if ($new_end != $old_end || $new_start != $old_start) {
+                    $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
+                        Course::findCurrent()->getFullname('number-name-semester'),
+                        User::findCurrent()->getFullname('full_rev_username'),
+                        strftime('%x', $old_start) . ' - ' . strftime('%x', $old_end),
+                        strftime('%x', $new_start) . ' - ' . strftime('%x', $new_end)
+                        );
+                    StudipMail::sendMessage('evaluation@uni-oldenburg.de', 'Zeitpunkt der Evaluation geändert', $mailbody);
+                }
                 if ($new_start && $new_end && $new_end >= $new_start) {
                     self::setDatafieldValue(date('Y-m-d', $new_end), md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
                     self::setDatafieldValue(date('Y-m-d', $new_start), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
@@ -327,7 +338,11 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</div>';
             echo '</td></tr>';
 
-            echo '<tr><td colspan="3"><hr></td></tr>';
+            echo '<tr><td colspan="3"><hr>';
+            echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
+            echo _('Gemäß §3(8) der Ordnung zur Durchführung der studentischen Lehrveranstaltungsevaluationen sollen die Ergebnisse der Lehrveranstaltungsevaluation den VeranstaltaltungsteilnehmerInnen in geeigneter Form duch die Lehrenden vorgestellt werden und mit ihnen besprochen werden, gegebenenfalls können Verbesserungsvorschläge ausgetauscht werden.');
+            echo '</div>';
+            echo '</td></tr>';
 
             echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_public_stud">' ._("Ergebnisweiterleitung an Studierende") . '</label>';
@@ -377,7 +392,11 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</div>';
             echo '</td></tr>';
             */
-            echo '<tr><td colspan="3"><hr></td></tr>';
+            echo '<tr><td colspan="3"><hr>';
+            echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
+            echo _('Gemäß §1(2c) der Ordnung zur Durchführung der studentischen Lehrveranstaltungsevaluationen findet die regelmäßige Evaluation universitätsweit statt und dient einer Rückmeldung an die Hochschulleitung und die Studiendekaninnen oder Studiendekane zur Aufgabenerfüllung nach NHG §§37 Abs. 1; 45 Abs. 3 und damit ggf. Vorschläge zur Verbesserung gemacht werden können.');
+            echo '</div>';
+            echo '</td></tr>';
 
             echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_public">' ._("Ergebnisweiterleitung an Studiendekanin/Studiendekan sowie Evaluationsbeauftragte/n") . '</label>';
@@ -410,9 +429,13 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '</div>';
             echo '</td></tr>';
 
-               echo '<tr><td colspan="3"><hr></td></tr>';
+            echo '<tr><td colspan="3"><hr>';
+            echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
+            echo _('Sie haben die Möglichkeit, dass die Ergebnisse dieser Lehrveranstaltungsevaluation von der internen Evaluation dauerhaft gespeichert werden, so dass sie diese jederzeit anfordern können. (Mail an <a href="mailto:evaluation@uni-oldenburg.de">evaluation@uni-oldenburg.de</a>). Ansonsten werden diese Ergebnisse nicht weitervervendet und gelöscht.');
+            echo '</div>';
+            echo '</td></tr>';
 
-               echo '<tr><td>';
+            echo '<tr><td>';
             echo '<label style="font-weight:bold" for="eval_stored">' ._("Ergebnis dauerhaft speichern") . '</label>';
             if (count($lehrende)) {
                 echo '<ul style="font-size:smaller">';

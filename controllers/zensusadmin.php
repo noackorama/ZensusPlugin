@@ -168,15 +168,18 @@ class ZensusadminController extends PluginController
             $startdate = Request::get('startdate') ? strftime('%Y-%m-%d', strtotime(Request::get('startdate'))) : null;
             $enddate = Request::get('enddate') ? strftime('%Y-%m-%d', strtotime(Request::get('enddate'))) : null;
             $db = DBManager::get();
+            $ok = 0;
             foreach(array_keys($this->courses) as $seminar_id) {
                 if ($startdate) {
-                    $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $startdate]);
+                    $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $startdate]);
                 }
                 if ($enddate) {
-                    $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_END_EVALUATION'), $enddate]);
+                    $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_END_EVALUATION'), $enddate]);
                 }
             }
-            PageLayout::postSuccess(_("Start- Endzeiten wurden geändert."));
+            if ($ok) {
+                PageLayout::postSuccess(_("Start- Endzeiten wurden geändert."));
+            }
             return $this->redirect($this->url_for('/status'));
         }
         $this->render_template('zensusadmin/set_timespan');
@@ -192,11 +195,14 @@ class ZensusadminController extends PluginController
             CSRFProtection::verifyUnsafeRequest();
             $set_to_status = Request::get('plugin_active') ? 'on' : 'off';
             $db = DBManager::get();
+            $ok = 0;
             foreach(array_keys($this->courses) as $seminar_id) {
-                $db->execute("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES (?,?,?)",
+                $ok += $db->execute("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES (?,?,?)",
                     [$this->plugin->zensuspluginid, 'sem' . $seminar_id, $set_to_status]);
             }
-            PageLayout::postSuccess(_("Pluginstatus wurde geändert."));
+            if ($ok) {
+                PageLayout::postSuccess(_("Pluginstatus wurde geändert."));
+            }
             return $this->redirect($this->url_for('/status'));
         }
         $this->render_template('zensusadmin/activate_plugin');
