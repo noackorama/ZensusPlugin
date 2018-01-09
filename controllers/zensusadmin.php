@@ -65,6 +65,7 @@ class ZensusadminController extends PluginController
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
         $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
+        $this->datafield_wdhl = DataField::find(UniZensusPlugin::$datafield_id_wdhl);
 
         if (Request::submitted('save')) {
             $stored = false;
@@ -74,6 +75,9 @@ class ZensusadminController extends PluginController
                 $stored += $df->store();
                 $df = DataFieldEntry::createDataFieldEntry($this->datafield_form, $course_id);
                 $df->setValueFromSubmit($df_ids[UniZensusPlugin::$datafield_id_form]);
+                $stored += $df->store();
+                $df = DataFieldEntry::createDataFieldEntry($this->datafield_wdhl, $course_id);
+                $df->setValueFromSubmit($df_ids[UniZensusPlugin::$datafield_id_wdhl]);
                 $stored += $df->store();
             }
             if ($stored) {
@@ -94,7 +98,7 @@ class ZensusadminController extends PluginController
                 $csvdata[$c][] = DataFieldEntry::createDataFieldEntry($this->datafield_fb, $course_id, $r['fb'])->getDisplayValue();
                 $csvdata[$c][] = $r['sprache'];
                 $csvdata[$c][] = DataFieldEntry::createDataFieldEntry($this->datafield_form, $course_id, $r['form'])->getDisplayValue();
-                $csvdata[$c][] = $r['wdhl'];
+                $csvdata[$c][] = $r['wdhl'] ? 'Ja' : 'Nein';
                 $csvdata[$c][] = $r['eval_start_time'];
                 $csvdata[$c][] = $r['eval_end_time'];
                 ++$c;
@@ -279,7 +283,7 @@ INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id
                 $dozenten = new SimpleCollection(CourseMember::findByCourseAndStatus($course_id, 'dozent'));
                 $data[$course_id]['dozenten'] = $dozenten->getUserFullname('no_title_rev');
                 $data[$course_id]['teilnehmer_anzahl_aktuell'] = CourseMember::countByCourseAndStatus($course_id, 'autor');
-                $data[$course_id]['wdhl'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_wdhl,$course_id,''])->content ? 'x' : '';
+                $data[$course_id]['wdhl'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_wdhl,$course_id,''])->content;
                 $data[$course_id]['fb'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_fb,$course_id,''])->content;
                 $data[$course_id]['form'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_form,$course_id,''])->content;
                 $data[$course_id]['sprache'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_sprache,$course_id,''])->content;

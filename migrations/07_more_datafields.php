@@ -3,6 +3,7 @@ class MoreDatafields extends Migration
 {
     function up()
     {
+        DBManager::get()->exec("UPDATE `plugins` SET `plugintype` = 'AdminCourseAction,SystemPlugin' WHERE `plugins`.`pluginclassname` = 'UniZensusAdminPlugin' LIMIT 1");
         DBManager::get()->exec("INSERT IGNORE INTO `datafields` (`datafield_id`, `name`, `object_type`, `object_class`, `edit_perms`, `view_perms`, `priority`, `mkdate`, `chdate`, `type`, `typeparam`) VALUES
 ('5a005542e66248e2a5560cdd0e00025d', 'Lehrevaluation: Veranstaltung für Lehrevaluation vorgesehen', 'sem', NULL, 'root', 'root', 0, NULL, NULL, 'bool', ''),
 ('96776f3e6053e6f6bbb6d61a78e33389', 'Lehrevaluation: Wiederholungen', 'sem', NULL, 'root', 'root', 0, NULL, NULL, 'bool', ''),

@@ -43,7 +43,9 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <td data-sort-table="<?=htmlready($r['fb'])?>">
                 <?=DataFieldEntry::createDataFieldEntry($datafield_form, $course_id, $r['form'])->getHTML("datafields[$course_id]");?>
             </td>
-            <td><?=htmlready($r['wdhl'])?></td>
+            <td data-sort-table="<?=htmlready($r['wdhl'])?>">
+            <?=DataFieldEntry::createDataFieldEntry($datafield_wdhl, $course_id, $r['wdhl'])->getHTML("datafields[$course_id]");?>
+            </td>
             <td data-sort-table="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time'] . '-' . $r['eval_end_time']?></td>
         </tr>
         <? endforeach ?>

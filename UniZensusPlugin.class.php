@@ -14,7 +14,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static $datafield_id_wdhl = '96776f3e6053e6f6bbb6d61a78e33389';
     public static $datafield_id_fb = '7ae912151565bbcb76c3ac60bbd2f56c';
     public static $datafield_id_form= 'a07535cf2f8a72df33c12ddfa4b53dde';
-    public static $datafield_id_sprache= '';
+    public static $datafield_id_sprache= '4934123be5774218d63f94d1022d0242';
 
 
     private $id;
