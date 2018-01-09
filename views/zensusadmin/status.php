@@ -68,8 +68,8 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <td><?=$r['plugin_activated'] ? _('Ja') : _('Nein')?></td>
             <td><?=htmlready($r['eval_public'])?></td>
             <td><?=htmlready($r['eval_public_stud'])?></td>
-            <td data-sort-table="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time']?></td>
-            <td data-sort-table="<?=htmlready(strtotime($r['eval_end_time']))?>"><?=$r['eval_end_time']?></td>
+            <td data-sort-value="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time']?></td>
+            <td data-sort-value="<?=htmlready(strtotime($r['eval_end_time']))?>"><?=$r['eval_end_time']?></td>
         </tr>
         <? endforeach;?>
         </tbody>
