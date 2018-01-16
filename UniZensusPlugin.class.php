@@ -565,7 +565,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     }
                 }
 
-                if (!$results_available && $this->course_status['noresultsreason']) {
+                if (!$this->course_status['questionnaire'] && !$results_available && $this->course_status['noresultsreason']) {
                     if ($GLOBALS['perm']->have_studip_perm('tutor', $this->getId())) {
                         if($this->course_status['noresultsreason'] == 'wrong phase') {
                             echo chr(10) . '<p>';
@@ -582,7 +582,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                             echo _("Die Auswertung liegt nicht vor, weil die notwendige Rücklaufquote nicht erreicht wurde.");
                             echo chr(10) . '</p>';
                         }
-                    } else if ($GLOBALS['perm']->have_studip_perm('autor', $this->getId())) {
+                    } else if ($this->course_status['status'] == 'finished' &&  $GLOBALS['perm']->have_studip_perm('autor', $this->getId())) {
                         echo chr(10) . '<p>';
                         echo _("Die Evaluation ist beendet, aber die Auswertung liegt nicht vor, da entweder die notwendige Rücklaufquote nicht erreicht wurde bzw. die Ergebnisse von der/dem Lehrenden nicht freigegeben wurden.");
                         echo chr(10) . '</p>';
