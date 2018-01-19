@@ -5,14 +5,14 @@
 *
 *
 *
-* @author        André Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
+* @author        AndrÃ© Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
 * @version        $Id: UniZensusAdminPlugin.class.php,v 1.6 2013/04/04 15:17:49 anoack Exp $
 */
 // +---------------------------------------------------------------------------+
 // This file is part of Stud.IP
 // UniZensusAdminPlugin.class.php
 //
-// Copyright (C) 2007 André Noack <noack@data-quest.de>
+// Copyright (C) 2007 AndrÃ© Noack <noack@data-quest.de>
 // Suchi & Berg GmbH <info@data-quest.de>
 // +---------------------------------------------------------------------------+
 // This program is free software; you can redistribute it and/or
@@ -79,7 +79,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
     function token_action()
     {
         if (!$this->hasPermission()) {
-            throw new AccessDeniedException("Nur Root und ausgewählte Admins dürfen dieses Plugin sehen.");
+            throw new AccessDeniedException("Nur Root und ausgewÃ¤hlte Admins dÃ¼rfen dieses Plugin sehen.");
         }
         Navigation::activateItem('/UniZensusAdmin/sub/token');
         if (Request::submitted('generate_token')) {
@@ -87,8 +87,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         }
         ob_start();
         echo '<p>';
-        echo _("Für den Import der Veranstaltungsdaten in das Zensus System müssen sie dort ein Authentifizierungstoken hinterlegen.");
-        echo '<br>' . _("Hier können Sie ein Token für Ihre aktuelle Nutzerkennung generieren.");
+        echo _("FÃ¼r den Import der Veranstaltungsdaten in das Zensus System mÃ¼ssen sie dort ein Authentifizierungstoken hinterlegen.");
+        echo '<br>' . _("Hier kÃ¶nnen Sie ein Token fÃ¼r Ihre aktuelle Nutzerkennung generieren.");
         echo '</p>';
         echo '<div>';
         echo '<span style="font-weight:bold; padding-right:10px;">' . _("Nutzerkennung:") . '</span>';
@@ -112,7 +112,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
     function show_action() {
 
         if (!$this->hasPermission()) {
-            throw new AccessDeniedException("Nur Root und ausgewählte Admins dürfen dieses Plugin sehen.");
+            throw new AccessDeniedException("Nur Root und ausgewÃ¤hlte Admins dÃ¼rfen dieses Plugin sehen.");
         }
         Navigation::activateItem('/UniZensusAdmin/sub/show');
         ob_start();
@@ -136,8 +136,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $form_fields['endtime']['attributes'] = array('size'=>10, 'onMouseOver' => 'jQuery(this).datepicker();');
         $form_fields['plugin_status']  = array('type' => 'radio',  'separator' => '&nbsp;', 'default_value' => 1, 'options' => array(array('name'=>_("Ein"),'value'=>'1'),array('name'=>_("Aus"),'value'=>'0')));
         $form_buttons['set_plugin_status'] = array('name' => 'uebernehmen', 'caption' => _("Plugin ein/ausschalten"));
-        $form_buttons['set_starttime'] = array('name' => 'uebernehmen', 'caption' => _("Startzeit übernehmen"));
-        $form_buttons['set_endtime'] = array('name' => 'uebernehmen', 'caption' => _("Endzeit übernehmen"));
+        $form_buttons['set_starttime'] = array('name' => 'uebernehmen', 'caption' => _("Startzeit Ã¼bernehmen"));
+        $form_buttons['set_endtime'] = array('name' => 'uebernehmen', 'caption' => _("Endzeit Ã¼bernehmen"));
         $form = new StudipForm($form_fields, $form_buttons, 'studipform', false);
 
         if($form->isClicked('set_starttime') || $form->isClicked('set_endtime')){
@@ -273,15 +273,15 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             ?>
             </select>&nbsp;
             <?=SemesterData::GetSemesterSelector(array('name'=>'select_sem', 'style'=>'vertical-align:middle;'), $_SESSION['_default_sem'], 'semester_id', false)?>
-            <?=Studip\Button::create(_('Auswählen'), "choose_institut")?>
-            <?=Studip\Button::create(_('Zurücksetzen'), "reset_search")?>
+            <?=Studip\Button::create(_('AuswÃ¤hlen'), "choose_institut")?>
+            <?=Studip\Button::create(_('ZurÃ¼cksetzen'), "reset_search")?>
             <br>
             <span style="font-size:80%;">
-            ausgewählte ID: <span style="background-color:yellow;"><?=$institut_id?></span>
+            ausgewÃ¤hlte ID: <span style="background-color:yellow;"><?=$institut_id?></span>
             </span>
             </div>
             <div style="font-size:10pt;margin:10px;">
-            <b><?=_("Angezeigte Veranstaltungen einschränken:")?></b>
+            <b><?=_("Angezeigte Veranstaltungen einschrÃ¤nken:")?></b>
             <span style="margin-left:10px;font-size:10pt;">
             <input type="text" id="filter_name" name="filter_name" value="<?=htmlReady($_SESSION['zensus_admin']['filter_name'])?>" style="vertical-align:middle;">
             &nbsp;<label for="filter_name"><?=_("Name/Nummer der Veranstaltung")?></label>
@@ -322,7 +322,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 }
                 echo chr(10).$form->getFormStart(PluginEngine::getLink($this));
                 echo chr(10).'<div style="margin:10px;font-size:10pt;font-weight:bold">';
-                echo _("Start- und Endzeiten für ausgewählte Veranstaltungen setzen:");
+                echo _("Start- und Endzeiten fÃ¼r ausgewÃ¤hlte Veranstaltungen setzen:");
                 echo chr(10). '</div>';
                 echo chr(10).'<div style="margin:10px;font-size:10pt;">';
                 echo  '<span>' . _("Startzeit:") . '</span>';
@@ -335,7 +335,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo '</span><span style="padding-left:10px;">'. $form->getFormButton('set_endtime', array('style' => 'vertical-align:middle'));
                 echo chr(10). '</span></div>';
                 echo chr(10).'<div style="margin:10px;font-size:10pt;font-weight:bold">';
-                echo _("Evaluationsplugin für ausgewählte Veranstaltungen ein/ausschalten:") .'</div>';
+                echo _("Evaluationsplugin fÃ¼r ausgewÃ¤hlte Veranstaltungen ein/ausschalten:") .'</div>';
                 echo chr(10).'<div style="margin:10px;font-size:10pt;">';
                 echo chr(10) . $form->getFormField('plugin_status');
                 echo '&nbsp;&nbsp;&nbsp;'. $form->getFormButton('set_plugin_status', array('style' => 'vertical-align:middle'));
@@ -472,7 +472,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             echo "</table>";
             echo $form->getFormEnd();
             if ($_SESSION['zensus_admin']['institut_id'] && !count($data)) {
-                echo MessageBox::info(_("Im gewählten Bereich existieren keine Veranstaltungen"));
+                echo MessageBox::info(_("Im gewÃ¤hlten Bereich existieren keine Veranstaltungen"));
             }
         } else {
             echo MessageBox::info(_("Sie wurden noch keinen Einrichtungen zugeordnet."));
