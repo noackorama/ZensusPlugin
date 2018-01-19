@@ -424,7 +424,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 }
                 $tmpname = md5(uniqid('tmp'));
                 if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
-                    header('Location: ' . GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation.csv', 4, 'force'));
+
+                    header('Location: ' . FileManager::getDownloadURLForTemporaryFile($tmpname, 'Veranstaltungen_Lehrevaluation.csv'));
                     page_close();
                     die();
                 }
