@@ -19,6 +19,7 @@ class ZensusadminController extends PluginController
             }, Institute::getMyInstitutes());
             if (!in_array($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $institut_ids)) {
                 $GLOBALS['user']->cfg->store("MY_INSTITUTES_DEFAULT", $institut_ids[0]);
+                $this->filter['institute'] = $institut_ids[0];
             }
         } else {
             if (Request::submitted('toggle_zensus_active')) {
@@ -56,16 +57,34 @@ class ZensusadminController extends PluginController
     public function selection_action()
     {
         $GLOBALS['perm']->check('admin');
-        if (Request::submitted('mail')) {
-            return $this->mail_action();
-        }
-        Navigation::activateItem('/browse/my_courses/zensusadmin_selection');
-        PageLayout::addSqueezePackage('tablesorter');
 
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
         $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
         $this->datafield_wdhl = DataField::find(UniZensusPlugin::$datafield_id_wdhl);
+
+        if (Request::submitted('mail')) {
+            return $this->mail_action();
+        }
+        if (Request::submitted('activate_plugin')) {
+            return $this->activate_plugin_action();
+        }
+        if (Request::submitted('set_timespan')) {
+            return $this->set_timespan_action();
+        }
+        if (Request::submitted('set_frage')) {
+            return $this->set_frage_action();
+        }
+        if (Request::submitted('set_wdhl')) {
+            return $this->set_wdhl_action();
+        }
+        if (Request::submitted('set_form')) {
+            return $this->set_form_action();
+        }
+        Navigation::activateItem('/browse/my_courses/zensusadmin_selection');
+        PageLayout::addSqueezePackage('tablesorter');
+
+
 
         if (Request::submitted('save')) {
             $stored = false;
@@ -160,31 +179,37 @@ class ZensusadminController extends PluginController
 
     }
 
-    public function set_timespan_action()
+    public function set_timespan_action($return_to = 'status')
     {
-        if (!$this->plugin->user_is_eval_admin) {
+        /*if (!$this->plugin->user_is_eval_admin) {
             throw new AccessDeniedException();
-        }
+        }*/
+        $GLOBALS['perm']->check('admin');
         $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
-
-            $startdate = Request::get('startdate') ? strftime('%Y-%m-%d', strtotime(Request::get('startdate'))) : null;
-            $enddate = Request::get('enddate') ? strftime('%Y-%m-%d', strtotime(Request::get('enddate'))) : null;
             $db = DBManager::get();
             $ok = 0;
-            foreach(array_keys($this->courses) as $seminar_id) {
-                if ($startdate) {
-                    $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $startdate]);
-                }
-                if ($enddate) {
-                    $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_END_EVALUATION'), $enddate]);
+            if (Request::get('autodate')) {
+                $ok += $db->execute("DELETE FROM datafields_entries WHERE range_id IN (?) AND datafield_id=?", [array_keys($this->courses), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION')]);
+                $ok += $db->execute("DELETE FROM datafields_entries WHERE range_id IN (?) AND datafield_id=?", [array_keys($this->courses), md5('UNIZENSUSPLUGIN_END_EVALUATION')]);
+            } else {
+                $startdate = Request::get('startdate') ? strftime('%Y-%m-%d', strtotime(Request::get('startdate'))) : null;
+                $enddate = Request::get('enddate') ? strftime('%Y-%m-%d', strtotime(Request::get('enddate'))) : null;
+
+                foreach (array_keys($this->courses) as $seminar_id) {
+                    if ($startdate) {
+                        $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $startdate]);
+                    }
+                    if ($enddate) {
+                        $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_END_EVALUATION'), $enddate]);
+                    }
                 }
             }
             if ($ok) {
                 PageLayout::postSuccess(_("Start- Endzeiten wurden geändert."));
             }
-            return $this->redirect($this->url_for('/status'));
+            return $this->redirect($this->url_for('/' . $return_to));
         }
         $this->render_template('zensusadmin/set_timespan');
     }
@@ -210,6 +235,62 @@ class ZensusadminController extends PluginController
             return $this->redirect($this->url_for('/status'));
         }
         $this->render_template('zensusadmin/activate_plugin');
+    }
+
+    public function set_frage_action()
+    {
+        $GLOBALS['perm']->check('admin');
+        $this->courses = Request::getArray('selected_courses');
+        if (Request::submitted('save')) {
+            CSRFProtection::verifyUnsafeRequest();
+            $db = DBManager::get();
+            $ok = 0;
+
+            return $this->redirect($this->url_for('/selection'));
+        }
+        $this->render_template('zensusadmin/set_frage');
+    }
+
+    public function set_wdhl_action()
+    {
+        $GLOBALS['perm']->check('admin');
+        $this->institute = Institute::find($this->filter['institute']);
+        if (!$this->institute) {
+            return $this->render_text(MessageBox::info(_("Bitte wählen sie eine Einrichtung aus!")));
+        }
+        $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
+        if (Request::submitted('save') && $this->institute && $this->semester) {
+            CSRFProtection::verifyUnsafeRequest();
+            $db = DBManager::get();
+            $ok = 0;
+            $courses = array_keys($this->getSeminareData($this->plugin->user_is_eval_admin ? $this->filter['institute'] :  $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $this->semester));
+            if (Request::get('wdhl') == 1) {
+                foreach ($courses as $range_id) {
+                    $ok += $db->execute("REPLACE INTO datafields_entries (datafield_id,range_id,content,chdate) VALUES (?,?,'1',UNIX_TIMESTAMP())", [UniZensusPlugin::$datafield_id_wdhl, $range_id]);
+                }
+            } else {
+                $ok = $db->execute("DELETE FROM datafields_entries WHERE datafield_id=? AND range_id IN (?)", [UniZensusPlugin::$datafield_id_wdhl, $courses]);
+            }
+            if ($ok) {
+                PageLayout::postSuccess(_("Wiederholung für alle Veranstaltungen der Einrichtung wurde geändert."));
+            }
+            return $this->redirect($this->url_for('/selection'));
+        }
+        $this->render_template('zensusadmin/set_wdhl');
+    }
+
+    public function set_form_action()
+    {
+        $GLOBALS['perm']->check('admin');
+        $this->courses = Request::getArray('selected_courses');
+        if (Request::submitted('save')) {
+            CSRFProtection::verifyUnsafeRequest();
+            $db = DBManager::get();
+            $ok = 0;
+
+            return $this->redirect($this->url_for('/auswahl'));
+        }
+        $this->render_template('zensusadmin/set_form');
     }
 
     public function token_action()

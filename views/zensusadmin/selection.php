@@ -22,7 +22,7 @@ echo $this->render_partial('zensusadmin/_widgets.php');
         <th data-sort="htmldata"><?=_("Form der Teilnahme")?></th>
         <th data-sort="text"><?=_("Sprache")?></th>
         <th data-sort="htmldata"><?=_("Art des Fragebogens")?></th>
-        <th data-sort="htmldata"><?=_("Wdh")?></th>
+        <th data-sort="htmldata"><?=_("Wdhl")?></th>
         <th data-sort="htmldata"><?=_("Erhebungszeitraum")?></th>
         </tr>
         </thead>
@@ -36,15 +36,15 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <td><?=htmlready(join(',', $r['dozenten']))?></td>
             <td><?=htmlready($r['teilnehmer_anzahl_aktuell'])?></td>
             <td data-sort-value="<?=htmlready($r['fb'])?>">
-                <?=DataFieldEntry::createDataFieldEntry($datafield_fb, $course_id, $r['fb'])->getHTML("datafields[$course_id]");?>
+                <?=DataFieldEntry::createDataFieldEntry($datafield_fb, $course_id, $r['fb'])->getDisplayValue("datafields[$course_id]");?>
 
             </td>
             <td><?=htmlready($r['sprache'])?></td>
             <td data-sort-value="<?=htmlready($r['fb'])?>">
-                <?=DataFieldEntry::createDataFieldEntry($datafield_form, $course_id, $r['form'])->getHTML("datafields[$course_id]");?>
+                <?=DataFieldEntry::createDataFieldEntry($datafield_form, $course_id, $r['form'])->getDisplayValue("datafields[$course_id]");?>
             </td>
             <td data-sort-value="<?=htmlready($r['wdhl'])?>">
-            <?=DataFieldEntry::createDataFieldEntry($datafield_wdhl, $course_id, $r['wdhl'])->getHTML("datafields[$course_id]");?>
+            <?= ($r['wdhl'] ? _("Ja") : _("Nein")) ?>
             </td>
             <td data-sort-value="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time'] . '-' . $r['eval_end_time']?></td>
         </tr>
@@ -53,7 +53,10 @@ echo $this->render_partial('zensusadmin/_widgets.php');
     </table>
     <div>
         <?=Studip\Button::create(_("Nachricht an Lehrende"), 'mail', ['onClick' => 'STUDIP.Dialog.fromElement(this,{});return false;']);?>
-        <?=Studip\Button::createAccept(_("Speichern"), 'save');?>
+        <?=Studip\Button::create(_("Teilnahmeform"), 'set_form', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
+        <?=Studip\Button::create(_("Fragebogen"), 'set_frage', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
+        <?=Studip\Button::create(_("Wiederholung"), 'set_wdhl', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
+        <?=Studip\Button::create(_("Start/Endzeit setzen"), 'set_timespan', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
     </div>
 </form>
 

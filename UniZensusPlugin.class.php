@@ -210,16 +210,9 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         } else {
             $current_sem = Semester::findCurrent();
         }
-        $termine = DBManager::get()->fetchColumn("SELECT count(*) FROM termine WHERE range_id=? AND date BETWEEN ? AND ? ", array($seminar_id, (int)$current_sem['beginn'], (int)$current_sem['ende']));
-        if ($termine) {
-            $num = round($termine * 90 / 100);
-            if (!$num) $num = 1;
-            $begin = DBManager::get()->fetchColumn("SELECT date FROM termine WHERE range_id=? AND date BETWEEN ? AND ? ORDER BY date ASC LIMIT ?,1", array($seminar_id, (int)$current_sem['beginn'], (int)$current_sem['ende'], (int)$num - 1));
-            if ($begin) {
-                $begin = strtotime("00:00", $begin);
-                $end = strtotime("+20 days", $begin);
-            }
-        }
+        $begin = strtotime('monday -4 weeks', $current_sem->vorles_ende);
+        $end = strtotime("+14 days", $begin);
+
         return array($begin, $end);
     }
 
