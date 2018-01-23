@@ -240,11 +240,20 @@ class ZensusadminController extends PluginController
     public function set_frage_action()
     {
         $GLOBALS['perm']->check('admin');
+        $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
         $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
-            $db = DBManager::get();
-            $ok = 0;
+            $stored = false;
+            $submit_value = $_REQUEST['set_frage'][UniZensusPlugin::$datafield_id_form];
+            foreach (array_keys($this->courses) as $course_id) {
+                $df = DataFieldEntry::createDataFieldEntry($this->datafield_form, $course_id);
+                $df->setValueFromSubmit($submit_value);
+                $stored += $df->store();
+            }
+            if ($stored) {
+                PageLayout::postSuccess(_("Art des Fragebogens gespeichert."));
+            }
 
             return $this->redirect($this->url_for('/selection'));
         }
@@ -282,13 +291,22 @@ class ZensusadminController extends PluginController
     public function set_form_action()
     {
         $GLOBALS['perm']->check('admin');
+        $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
         $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
-            $db = DBManager::get();
-            $ok = 0;
+            $stored = false;
+            $submit_value = $_REQUEST['set_form'][UniZensusPlugin::$datafield_id_fb];
+            foreach (array_keys($this->courses) as $course_id) {
+                $df = DataFieldEntry::createDataFieldEntry($this->datafield_fb, $course_id);
+                $df->setValueFromSubmit($submit_value);
+                $stored += $df->store();
+            }
+            if ($stored) {
+                PageLayout::postSuccess(_("Form der Teilnahme gespeichert."));
+            }
 
-            return $this->redirect($this->url_for('/auswahl'));
+            return $this->redirect($this->url_for('/selection'));
         }
         $this->render_template('zensusadmin/set_form');
     }
