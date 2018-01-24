@@ -324,7 +324,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '<br><strong>';
             echo _("Eingestellter Zeitraum: ");
             if ($this->course_status['time_frame']['status'] == 'auto') {
-                echo sprintf(_("Standardzeitraum (Letzte Veranstaltungstermine, Laufzeit %s Tage)"),round(($this->course_status['time_frame']['end']-$this->course_status['time_frame']['begin']) / 86400));
+                echo _("Standardzeitraum (4 Wochen vor Semesterende, Laufzeit 14 Tage)");
             } else {
                 echo sprintf(_("Individuell gewählter Zeitraum, Laufzeit %s Tage"), round(($this->course_status['time_frame']['end']-$this->course_status['time_frame']['begin']) / 86400));
             }
