@@ -283,25 +283,27 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 $new_end = Request::get('time_frame2') ? strtotime(Request::get('time_frame2')) : null;
                 list($old_start, $old_end, $time_status) = $this->getCourseEvaluationTimeframe();
 
-                if ($new_start && $new_end && $new_end >= $new_start) {
-                    self::setDatafieldValue(date('Y-m-d', $new_end), md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
-                    self::setDatafieldValue(date('Y-m-d', $new_start), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
-                    if ($new_end != $old_end || $new_start != $old_start) {
-                        setTempLanguage();
-                        $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
-                            Course::findCurrent()->getFullname('number-name-semester'),
-                            User::findCurrent()->getFullname('full_rev_username'),
-                            strftime('%x', $old_start) . ' - ' . strftime('%x', $old_end),
-                            strftime('%x', $new_start) . ' - ' . strftime('%x', $new_end)
-                        );
-                        StudipMail::sendMessage('evaluation@uni-oldenburg.de', 'Zeitpunkt der Evaluation geändert', $mailbody);
-                        restoreLanguage();
-                    }
-                } else {
-                    self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
-                    self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
-                    echo MessageBox::error(_("Der eingegebene Zeitraum ist ungültig. Es wird der Standardzeitraum benutzt."));
+                if ($new_start && $new_end) {
+                    if ($new_end > $new_start) {
+                        self::setDatafieldValue(date('Y-m-d', $new_end), md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
+                        self::setDatafieldValue(date('Y-m-d', $new_start), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
+                        if ($new_end != $old_end || $new_start != $old_start) {
+                            setTempLanguage();
+                            $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
+                                Course::findCurrent()->getFullname('number-name-semester'),
+                                User::findCurrent()->getFullname('full_rev_username'),
+                                strftime('%x', $old_start) . ' - ' . strftime('%x', $old_end),
+                                strftime('%x', $new_start) . ' - ' . strftime('%x', $new_end)
+                            );
+                            StudipMail::sendMessage('evaluation@uni-oldenburg.de', 'Zeitpunkt der Evaluation geändert', $mailbody);
+                            restoreLanguage();
+                        }
+                    } else {
+                        self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
+                        self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
+                        echo MessageBox::error(_("Der eingegebene Zeitraum ist ungültig. Es wird der Standardzeitraum benutzt."));
 
+                    }
                 }
                 echo MessageBox::success(_("Die Einstellungen wurden gespeichert."));
             }
