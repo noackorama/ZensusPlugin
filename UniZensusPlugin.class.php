@@ -91,6 +91,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             if(is_array($time_frame)){
                 $this->course_status['time_frame']['begin'] = $time_frame[0];
                 $this->course_status['time_frame']['end'] = $time_frame[1];
+                $this->course_status['time_frame']['status'] = $time_frame[2];
             }
         }
     }
@@ -102,6 +103,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             if(is_array($time_frame)){
                 $this->course_status['time_frame']['begin'] = $time_frame[0];
                 $this->course_status['time_frame']['end'] = $time_frame[1];
+                $this->course_status['time_frame']['status'] = $time_frame[2];
             }
         }
     }
@@ -180,11 +182,11 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if ($this->getId()) {
             $end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
             $begin = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
-            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
+            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end), 'manual');
             list($calcbegin, $calcend) = $this->getCalculatedCourseTimeFrame($this->getId());
             if ($calcbegin && !$begin) $begin = $calcbegin;
             if ($calcend && !$end) $end = $calcend;
-            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end));
+            if ($begin && $end && ($begin <= $end)) return array($begin, strtotime('now 23:59', $end), 'auto');
             $globalbegin = $this->SQLDateToTimestamp(Config::get()->UNIZENSUSPLUGIN_BEGIN_EVALUATION);
             $globalend = $this->SQLDateToTimestamp(Config::get()->UNIZENSUSPLUGIN_END_EVALUATION);
             if ($globalbegin && !$begin) $begin = $globalbegin;
@@ -277,30 +279,31 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 self::setDatafieldValue(Request::int('eval_public_stud'), self::$datafield_id_auswertung_studierende, $this->getID(), $GLOBALS['user']->id);
                 $new_start = Request::get('time_frame1') ? strtotime(Request::get('time_frame1')) : null;
                 $new_end = Request::get('time_frame2') ? strtotime(Request::get('time_frame2')) : null;
-                $old_end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
-                $old_start = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
-                if ($new_end != $old_end || $new_start != $old_start) {
-                    $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
-                        Course::findCurrent()->getFullname('number-name-semester'),
-                        User::findCurrent()->getFullname('full_rev_username'),
-                        strftime('%x', $old_start) . ' - ' . strftime('%x', $old_end),
-                        strftime('%x', $new_start) . ' - ' . strftime('%x', $new_end)
-                    );
-                    StudipMail::sendMessage('evaluation@uni-oldenburg.de', 'Zeitpunkt der Evaluation geändert', $mailbody);
-                }
+                list($old_start, $old_end, $time_status) = $this->getCourseEvaluationTimeframe();
+
                 if ($new_start && $new_end && $new_end >= $new_start) {
                     self::setDatafieldValue(date('Y-m-d', $new_end), md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
                     self::setDatafieldValue(date('Y-m-d', $new_start), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
+                    if ($new_end != $old_end || $new_start != $old_start) {
+                        setTempLanguage();
+                        $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
+                            Course::findCurrent()->getFullname('number-name-semester'),
+                            User::findCurrent()->getFullname('full_rev_username'),
+                            strftime('%x', $old_start) . ' - ' . strftime('%x', $old_end),
+                            strftime('%x', $new_start) . ' - ' . strftime('%x', $new_end)
+                        );
+                        StudipMail::sendMessage('evaluation@uni-oldenburg.de', 'Zeitpunkt der Evaluation geändert', $mailbody);
+                        restoreLanguage();
+                    }
                 } else {
                     self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId());
                     self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
+                    echo MessageBox::error(_("Der eingegebene Zeitraum ist ungültig. Es wird der Standardzeitraum benutzt."));
+
                 }
                 echo MessageBox::success(_("Die Einstellungen wurden gespeichert."));
             }
             $this->getCourseAndUserStatus();
-            $valid_end = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_END_EVALUATION'), $this->getId()));
-            $valid_begin = strtotime(self::getDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId()));
-            if ($valid_end !== false && $valid_end < $valid_begin) $valid_end = false;
             echo chr(10) . '<form action="?" method="post">';
             echo chr(10) . (class_exists('CSRFProtection') ? CSRFProtection::tokenTag() : '') ;
 
@@ -309,11 +312,19 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             echo '<tr><td>';
             echo '<label style="font-weight:bold" for="time_frame">' ._("Zeitraum") . '</label>';
             echo '</td><td align="center">';
-            echo 'Start:<input class="has-date-picker hasDatePicker" name="time_frame1" id="time_frame1" size="10" value="' . ($valid_begin ? strftime('%x', $this->course_status['time_frame']['begin']) :'') . '" type="text" ' . (!$valid_begin && $this->course_status['time_frame']['begin'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['begin']).'"' : '') . '>';
-            echo 'Ende:<input class="has-date-picker hasDatePicker" name="time_frame2" id="time_frame2" size="10" value="' . ($valid_end ? strftime('%x', $this->course_status['time_frame']['end']) : '') . '" type="text" ' . (!$valid_end && $this->course_status['time_frame']['end'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['end']).'"' : '') . '>';
+            echo 'Start:<input data-date-picker id="time_frame1" name="time_frame1" id="time_frame1" size="10" value="' . ($this->course_status['time_frame']['status'] == 'manual' ? strftime('%x', $this->course_status['time_frame']['begin']) :'') . '" type="text" ' . ($this->course_status['time_frame']['status'] == 'auto'  && $this->course_status['time_frame']['begin'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['begin']).'"' : '') . '>';
+            echo 'Ende:<input data-date-picker=\'{">":"#time_frame1"}\' name="time_frame2" id="time_frame2" size="10" value="' . ($this->course_status['time_frame']['status'] == 'manual' ? strftime('%x', $this->course_status['time_frame']['end']) : '') . '" type="text" ' . ($this->course_status['time_frame']['status'] == 'auto' && $this->course_status['time_frame']['end'] ? 'placeholder="'.strftime('%x', $this->course_status['time_frame']['end']).'"' : '') . '>';
             echo '</td><td>';
             echo '<div style="font-style:italic; padding-left: 10px;">';
             echo _("Innerhalb dieses Zeitraumes ist die Evaluation für die Studierenden zugänglich. Bitte ändern Sie diesen nur bei Bedarf (z.B. für Blockseminare).");
+            echo '<br><strong>';
+            echo _("Eingestellter Zeitraum: ");
+            if ($this->course_status['time_frame']['status'] == 'auto') {
+                echo _("Standardzeitraum (4 Wochen vor Semesterende, Laufzeit 14 Tage)");
+            } else {
+                echo sprintf(_("Individuell gewählter Zeitraum, Laufzeit %s Tage"), round(($this->course_status['time_frame']['end']-$this->course_status['time_frame']['begin']) / 86400));
+            }
+            echo '</strong>';
             echo '</div>';
             echo '</td></tr>';
 
@@ -422,7 +433,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
 
             echo '<tr><td colspan="3"><hr>';
             echo '<div style="border: 1px solid; background-color: lightyellow; padding: 5px">';
-            echo _('Sie haben die Möglichkeit, dass die Ergebnisse dieser Lehrveranstaltungsevaluation von der internen Evaluation dauerhaft gespeichert werden, so dass sie diese jederzeit anfordern können. (Mail an <a href="mailto:evaluation@uni-oldenburg.de">evaluation@uni-oldenburg.de</a>). Ansonsten werden diese Ergebnisse nicht weitervervendet und gelöscht.');
+            echo _('Sie haben die Möglichkeit, dass die Ergebnisse dieser Lehrveranstaltungsevaluation von der internen Evaluation dauerhaft gespeichert werden, so dass sie diese jederzeit anfordern können. (Mail an <a href="mailto:evaluation@uni-oldenburg.de">evaluation@uni-oldenburg.de</a>). Ansonsten werden diese Ergebnisse nicht weiterverwendet und gelöscht.');
             echo '</div>';
             echo '</td></tr>';
 
