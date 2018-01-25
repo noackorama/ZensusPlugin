@@ -290,7 +290,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                         self::unsetDatafieldValue(md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $this->getId());
                         echo MessageBox::error(_("Der eingegebene Zeitraum ist ungültig. Es wird der Standardzeitraum benutzt."));
                     }
-                    if ($new_end != $old_end || $new_start != $old_start) {
+                    if (date('Y-m-d', $new_end) != date('Y-m-d', $old_end) || date('Y-m-d', $new_start) != date('Y-m-d', $old_start)) {
                         list($new_start, $new_end, $time_status) = $this->getCourseEvaluationTimeframe();
                         setTempLanguage();
                         $mailbody = sprintf("In der Veranstaltung \"%s\" wurde von einem Dozenten (%s) eine Änderung des Evaluationszeitraumes vorgenommen.\nAlter Wert: %s\nNeuer Wert: %s",
