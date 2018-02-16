@@ -554,9 +554,9 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                             echo chr(10) . '<img src="' . $pluginrelativepath . '/images/link_extern.gif" hspace="2" border="0">' . _("Die Ergebnisse der Evaluation aufrufen") . '</a></p>';
                         }
                         //hier könnte evtl. pdfdetail benutzt werden, im Moment nur für OL relevant
-                        if ($additional_data['eval_public_stud'] == 2 && $this->checkResultforUser('pdfresults', $checked_user_id)) {
-                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfresults', $this->getZensusCourseId(), $checked_user_id) . '">';
-                            echo chr(10) . '<img src="' . $pluginrelativepath . '/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Profillinie) der Evaluation als PDF aufrufen") . '</a></p>';
+                        if ($additional_data['eval_public_stud'] == 2 && $this->checkResultforUser('pdfdetail', $checked_user_id)) {
+                            echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetail', $this->getZensusCourseId(), $checked_user_id) . '">';
+                            echo chr(10) . '<img src="' . $pluginrelativepath . '/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung ohne Kommentare) der Evaluation als PDF aufrufen") . '</a></p>';
                         }
                         if ($additional_data['eval_public_stud'] == 1 && $this->checkResultforUser('pdfdetailfreetexts', $checked_user_id)) {
                             echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts', $this->getZensusCourseId(), $checked_user_id) . '">';
@@ -603,7 +603,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                             }
                             if ($this->checkResultforUser('pdfdetail', $m['user_id'])) {
                                 echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetail',$this->getZensusCourseId(),$m['user_id']) . '">';
-                                echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung) der Evaluation als PDF aufrufen") . '</a></p>';
+                                echo chr(10) . '<img src="'.$pluginrelativepath.'/images/pdf-icon.gif" hspace="2" border="0" align="absbottom">' . _("Die Ergebnisse (Detailauswertung ohne Kommentare) der Evaluation als PDF aufrufen") . '</a></p>';
                             }
                             if ($this->checkResultforUser('pdfdetailfreetexts', $m['user_id'])) {
                                 echo chr(10) . '<p><a target="_blank" href="' . $this->RPC->getEvaluationURL('pdfdetailfreetexts',$this->getZensusCourseId(),$m['user_id']) . '">';
