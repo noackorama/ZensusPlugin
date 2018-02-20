@@ -167,7 +167,7 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
     zensus_output_data ( zensus_xmlheader(), $o_mode);
 
     if ($auth_uid) {
-        if (get_global_perm($auth_uid) != 'root') {
+        if ($GLOBALS['perm']->get_perm($user_id) != 'root') {
 
             $z_role = current(array_filter(RolePersistence::getAssignedRoles($auth_uid), function ($r) {
                 return $r->rolename == 'ZensusAdmin';
