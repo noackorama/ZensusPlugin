@@ -28,7 +28,17 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     function __construct()
     {
         parent::__construct();
-        $this->RPC = new UniZensusRPC();
+	$this->RPC = new UniZensusRPC();
+
+        if ($this->isVisible()) {
+            $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
+            $tab->setActiveImage(Icon::create('evaluation','new'));
+            $tab->setImage(Icon::create('evaluation','clickable'));
+            if (Navigation::hasItem('/course') && $this->isActivated()){
+                         Navigation::addItem('/course/' . get_class($this), $tab);
+            }
+
+        }
 
     }
 
@@ -39,7 +49,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             $has_changed = $this->hasChanged($last_visit);
             $message = $this->getOverviewMessage($has_changed);
             $nav = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
-            $nav->setImage($has_changed ? 'icons/20/red/evaluation' : 'icons/20/black/evaluation', array('title' => $message));
+            $nav->setImage(Icon::create('evaluation', $has_changed ? 'new' : 'clickable', ["title" => $message ]));
             return $nav;
         }
     }
@@ -49,8 +59,12 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         $this->setId($course_id);
         if ($this->isVisible()) {
             $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
-            $tab->setActiveImage(Assets::image_path('icons/16/black/evaluation'));
-            $tab->setImage(Assets::image_path('icons/16/white/evaluation'));
+	    $tab->setActiveImage(Icon::create('evaluation','new'));
+	    $tab->setImage(Icon::create('evaluation','clickable'));
+	    if (Navigation::hasItem('/course') && $this->isActivated()){
+	                 Navigation::addItem('/course/' . get_class($this), $tab);
+	    }
+
             return array(get_class($this) => $tab);
         }
     }
@@ -261,7 +275,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     function show_action()
     {
         if (!$this->isVisible()) return;
-        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
+        PageLayout::setTitle(Context::getHeaderLine() . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
         Navigation::activateItem('/course/' . get_class($this));
         ob_start();
         $this->getCourseAndUserStatus();
@@ -531,7 +545,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                     }
                 }
 
-                if (!$results_available && $this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('tutor', $this->getId())) {
+                if (!$results_available && $this->course_status['noresultsreason'] && $GLOBALS['perm']->have_studip_perm('autor', $this->getId())) {
                     if($this->course_status['noresultsreason'] == 'wrong phase') {
                         echo chr(10) . '<p>';
                         echo _("Die Auswertung liegt noch nicht vor, da die Evaluation noch läuft.");
