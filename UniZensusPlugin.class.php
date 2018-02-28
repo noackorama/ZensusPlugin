@@ -46,7 +46,13 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             $has_changed = $this->hasChanged($last_visit);
             $message = $this->getOverviewMessage($has_changed);
             $nav = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
-            $nav->setImage($has_changed ? 'icons/20/red/evaluation' : 'icons/20/black/evaluation', array('title' => $message));
+            $nav->setImage(
+                Icon::create(
+                    'evaluation',
+                    $has_changed ? 'new' : 'info'
+                ),
+                array('title' => $message)
+            );
             return $nav;
         }
     }
@@ -56,8 +62,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         $this->setId($course_id);
         if ($this->isVisible()) {
             $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
-            $tab->setActiveImage(Assets::image_path('icons/16/black/evaluation'));
-            $tab->setImage(Assets::image_path('icons/16/white/evaluation'));
+            $tab->setActiveImage(Icon::create('evaluation', 'info'));
+            $tab->setImage(Icon::create('evaluation', 'info-alt'));
             return array(get_class($this) => $tab);
         }
     }
