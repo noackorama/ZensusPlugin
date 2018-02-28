@@ -265,7 +265,11 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     function show_action()
     {
         if (!$this->isVisible()) return;
-        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
+        PageLayout::setTitle(
+            Context::getHeaderLine()
+                   . ' - '
+                   . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME
+        );
         Navigation::activateItem('/course/' . get_class($this));
         ob_start();
         $pluginrelativepath = $this->getPluginUrl();

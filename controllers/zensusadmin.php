@@ -124,7 +124,12 @@ class ZensusadminController extends PluginController
             }
             $tmpname = md5(uniqid('tmp'));
             if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
-                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation_Auswahl.csv', 4, 'force'));
+                $this->redirect(
+                    FileManager::getDownloadURLForTemporaryFile(
+                        $tmpname,
+                        'Veranstaltungen_Lehrevaluation_Auswahl.csv'
+                    )
+                );
                 return;
             }
         }
@@ -172,7 +177,12 @@ class ZensusadminController extends PluginController
             }
             $tmpname = md5(uniqid('tmp'));
             if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
-                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation_Status.csv', 4, 'force'));
+                $this->redirect(
+                    FileManager::getDownloadURLForTemporaryFile(
+                        $tmpname,
+                        'Veranstaltungen_Lehrevaluation_Status.csv',
+                    )
+                );
                 return;
             }
         }
