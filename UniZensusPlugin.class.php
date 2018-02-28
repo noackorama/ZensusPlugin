@@ -45,7 +45,14 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if (Config::get()->UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW && $this->isVisible()) {
             $has_changed = $this->hasChanged($last_visit);
             $message = $this->getOverviewMessage($has_changed);
-            $nav = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
+            $nav = new AutoNavigation(
+                Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME,
+                PluginEngine::getUrl(
+                    $this,
+                    [],
+                    'show'
+                )
+            );
             $nav->setImage(
                 Icon::create(
                     'evaluation',
