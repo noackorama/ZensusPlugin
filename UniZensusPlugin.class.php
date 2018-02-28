@@ -70,7 +70,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         if ($this->isVisible()) {
             $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
             $tab->setActiveImage(Icon::create('evaluation', 'info'));
-            $tab->setImage(Icon::create('evaluation', 'info-alt'));
+            $tab->setImage(Icon::create('evaluation', 'info_alt'));
             return array(get_class($this) => $tab);
         }
     }
