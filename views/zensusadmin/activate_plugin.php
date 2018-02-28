@@ -1,4 +1,4 @@
-<h1><?=sprintf(_('Zensus Plugin für %s Veranstaltungen ein- oder ausschalten'), count($courses))?></h1>
+<h1><?=sprintf(_('Zensus Plugin fÃ¼r %s Veranstaltungen ein- oder ausschalten'), count($courses))?></h1>
 <form class="default" action="<?=$controller->link_for('/activate_plugin')?>" method="post">
 <?= CSRFProtection::tokenTag() ?>
     <?=addHiddenFields('selected_courses', $courses)?>
@@ -7,6 +7,6 @@
     <label><input type="radio" name="plugin_active" value="0"><?=_('Ausschalten')?></label>
     </fieldset>
     <div data-dialog-button>
-        <?=Studip\Button::createAccept(_('Übernehmen'), 'save')?>
+        <?=Studip\Button::createAccept(_('Ãœbernehmen'), 'save')?>
     </div>
 </form>

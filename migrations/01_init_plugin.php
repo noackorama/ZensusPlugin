@@ -17,10 +17,10 @@ MD5( 'UNIZENSUSPLUGIN_SHARED_SECRET1' ) , '', 'UNIZENSUSPLUGIN_SHARED_SECRET1', 
 MD5( 'UNIZENSUSPLUGIN_SHARED_SECRET2' ) , '', 'UNIZENSUSPLUGIN_SHARED_SECRET2', 'geheim2', '1', 'string', 'global', '', '2', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Mit Unizensus geteiltes Geheimnis Teil 2', '', ''
 ),
 (
-MD5( 'UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW' ) , '', 'UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW', '0', '1', 'boolean', 'global', '', '3', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Anzeige von Unizensus Evaluationen auf der Übersichtsseite', '', ''
+MD5( 'UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW' ) , '', 'UNIZENSUSPLUGIN_SHOWN_IN_OVERVIEW', '0', '1', 'boolean', 'global', '', '3', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Anzeige von Unizensus Evaluationen auf der Ãœbersichtsseite', '', ''
 ),
 (
-MD5( 'UNIZENSUSPLUGIN_DISPLAYNAME' ) , '', 'UNIZENSUSPLUGIN_DISPLAYNAME', 'Lehrevaluation UniZensus', '1', 'string', 'global', '', '4', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Überschrift Unizensus Evaluationsplugin', '', ''
+MD5( 'UNIZENSUSPLUGIN_DISPLAYNAME' ) , '', 'UNIZENSUSPLUGIN_DISPLAYNAME', 'Lehrevaluation UniZensus', '1', 'string', 'global', '', '4', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Ãœberschrift Unizensus Evaluationsplugin', '', ''
 ),
 (
 MD5( 'UNIZENSUSPLUGIN_XMLRPC_ENDPOINT' ) , '', 'UNIZENSUSPLUGIN_XMLRPC_ENDPOINT', 'http://openquestionnaire.de:8080/zensus/remote', '1', 'string', 'global', '', '5', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'URL des Unizensus XML-RPC Service', '', ''

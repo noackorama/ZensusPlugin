@@ -1,4 +1,4 @@
-<h1><?=sprintf(_('Form der Teilnahme für %s Veranstaltungen wählen'), count($courses))?></h1>
+<h1><?=sprintf(_('Form der Teilnahme fÃ¼r %s Veranstaltungen wÃ¤hlen'), count($courses))?></h1>
 <form class="default" action="<?=$controller->link_for('/set_form')?>" method="post">
     <?= CSRFProtection::tokenTag() ?>
     <?=addHiddenFields('selected_courses', $courses)?>
@@ -8,6 +8,6 @@
         </label>
     </fieldset>
     <div data-dialog-button>
-        <?=Studip\Button::createAccept(_('Übernehmen'), 'save')?>
+        <?=Studip\Button::createAccept(_('Ãœbernehmen'), 'save')?>
     </div>
 </form>

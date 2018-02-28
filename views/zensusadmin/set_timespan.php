@@ -1,4 +1,4 @@
-<h1><?=sprintf(_('Start- und Endzeiten für %s Veranstaltungen setzen'), count($courses))?></h1>
+<h1><?=sprintf(_('Start- und Endzeiten fÃ¼r %s Veranstaltungen setzen'), count($courses))?></h1>
 <form class="default" action="<?=$controller->link_for('/set_timespan/' . $this->current_action)?>" method="post">
     <?= CSRFProtection::tokenTag() ?>
     <?=addHiddenFields('selected_courses', $courses)?>
@@ -17,6 +17,6 @@
         </label>
     </fieldset>
     <div data-dialog-button>
-        <?=Studip\Button::createAccept(_('Übernehmen'), 'save')?>
+        <?=Studip\Button::createAccept(_('Ãœbernehmen'), 'save')?>
     </div>
 </form>

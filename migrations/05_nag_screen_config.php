@@ -19,15 +19,15 @@ class NagScreenConfig extends Migration
         $statement->bindValue(':field', 'UNIZENSUSPLUGIN_NAG_SCREEN_CONTENT_DOZENT');
         $statement->bindValue(':value', 'Liebe/r Lehrende,
 
-die aktuelle Lehrveranstaltungsevaluation läuft wieder. Eine möglichst hohe Beteiligung und die Freischaltung der Ergebnisse sind sehr wichtig.
+die aktuelle Lehrveranstaltungsevaluation lÃ¤uft wieder. Eine mÃ¶glichst hohe Beteiligung und die Freischaltung der Ergebnisse sind sehr wichtig.
 Bitte motivieren Sie Ihre Studierenden, an der Evaluation teilzunehmen.
 
-In Stud.IP können Sie innerhalb der Veranstaltung unter dem grauen Reiter "Lehrevaluation Unizensus" 
+In Stud.IP kÃ¶nnen Sie innerhalb der Veranstaltung unter dem grauen Reiter "Lehrevaluation Unizensus" 
 - die TeilnehmerInnenzahl anpassen,
 - die Ergebnisse Ihrer/m Studiendekan/in und der/m Evaluationsbeauftragten freischalten,
 - die Auswertungsdokumente in- und exklusive der Freitextantworten Ihren Studierenden weiterleiten.
 
-Vielen Dank für Ihre Unterstützung!
+Vielen Dank fÃ¼r Ihre UnterstÃ¼tzung!
 Ihr Referat Studium und Lehre ( evaluation@uni-oldenburg.de )');
         $statement->bindValue(':range', 'global');
         $statement->bindValue(':description', 'Text der bei Dozenten nach Start der Evaluierung in einem Popup einmalig angezeigt werden soll (Stud.IP Formatierung).');
