@@ -1,5 +1,5 @@
 <?php
-class InitPlugin extends DBMigration
+class InitPlugin extends Migration
 {
 	function up(){
 		DBManager::get()->exec("CREATE TABLE IF NOT EXISTS `unizensusplugincache` (

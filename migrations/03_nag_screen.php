@@ -1,5 +1,5 @@
 <?php
-class NagScreen extends DBMigration
+class NagScreen extends Migration
 {
 	function up(){
 		DBManager::get()->exec("INSERT IGNORE INTO `config` ( `config_id` , `parent_id` , `field` , `value` , `is_default` , `type` , `range` , `section` , `position` , `mkdate` , `chdate` , `description` , `comment` , `message_template` )

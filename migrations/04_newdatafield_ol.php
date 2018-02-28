@@ -1,5 +1,5 @@
 <?php
-class NewdatafieldOl extends DBMigration
+class NewdatafieldOl extends Migration
 {
     function up()
     {

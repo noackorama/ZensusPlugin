@@ -1,5 +1,5 @@
 <?php
-class NagScreenConfig extends DBMigration
+class NagScreenConfig extends Migration
 {
     function up()
     {
