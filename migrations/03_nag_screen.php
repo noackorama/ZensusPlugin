@@ -6,10 +6,10 @@ class NagScreen extends DBMigration
 VALUES
 (
 MD5( 'UNIZENSUSPLUGIN_NAG_SCREEN_CONTENT' ) , '', 'UNIZENSUSPLUGIN_NAG_SCREEN_CONTENT', '!!Sie haben noch nicht alle Ihre Lehrveranstaltungen evaluiert!
-Zur Durchführung der Evaluation klicken Sie auf der Seite \"Meine Veranstaltungen\" pro Veranstaltungszeile auf das (noch rote) Evaluationssymbol und dort auf den Fragebogen.
+Zur DurchfÃ¼hrung der Evaluation klicken Sie auf der Seite \"Meine Veranstaltungen\" pro Veranstaltungszeile auf das (noch rote) Evaluationssymbol und dort auf den Fragebogen.
 Vielen Dank!
 
-%%Hinweis: Die Teilnahme ist grundsätzlich freiwillig und anonym und hat keine Auswirkung auf Ihr persönliches Studium. Bei Fragen zu dieser Meldung wenden Sie sich bitte an studip@studip.de . %%', '1', 'string', 'global', '', '1', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Text der bei noch nicht erfolgter Evaluierung in einem Popup angezeigt werden soll (Stud.IP Formatierung)', '', ''
+%%Hinweis: Die Teilnahme ist grundsÃ¤tzlich freiwillig und anonym und hat keine Auswirkung auf Ihr persÃ¶nliches Studium. Bei Fragen zu dieser Meldung wenden Sie sich bitte an studip@studip.de . %%', '1', 'string', 'global', '', '1', UNIX_TIMESTAMP( ) , UNIX_TIMESTAMP( ) , 'Text der bei noch nicht erfolgter Evaluierung in einem Popup angezeigt werden soll (Stud.IP Formatierung)', '', ''
 )");
     }
 

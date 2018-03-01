@@ -1,6 +1,5 @@
 <?php
 require_once "vendor/phpxmlrpc/xmlrpc.inc";
-require_once "lib/datei.inc.php";
 
 class UniZensusRPC {
 
@@ -11,7 +10,7 @@ class UniZensusRPC {
 	/**
 	 *
 	 */
-	function UniZensusRPC(){
+	function __construct(){
 		$this->client = new xmlrpc_client(Config::get()->UNIZENSUSPLUGIN_XMLRPC_ENDPOINT);
 		$this->client->setDebug($this->debug);
 	}
