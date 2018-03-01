@@ -115,7 +115,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         echo '</form>';
         echo '</div>';
         PageLayout::setTitle($this->getDisplayname());
-        $layout = $GLOBALS['template_factory']->open('layouts/base_without_infobox');
+        $layout = $GLOBALS['template_factory']->open('layouts/base');
         $layout->content_for_layout = ob_get_clean();
         echo $layout->render();
     }
@@ -462,7 +462,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
         PageLayout::setTitle($this->getDisplayname());
 
-        $layout = $GLOBALS['template_factory']->open('layouts/base_without_infobox');
+        $layout = $GLOBALS['template_factory']->open('layouts/base');
 
         $layout->content_for_layout = ob_get_clean();
 
