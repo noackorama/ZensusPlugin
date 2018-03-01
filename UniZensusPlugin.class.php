@@ -40,7 +40,11 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             $has_changed = $this->hasChanged($last_visit);
             $message = $this->getOverviewMessage($has_changed);
             $nav = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
-            $nav->setImage($has_changed ? 'icons/20/red/evaluation' : 'icons/20/black/evaluation', array('title' => $message));
+            if (!$has_changed) {
+                $nav->setImage(Icon::create('evaluation', ICON::ROLE_INACTIVE, ["title" => $message]));
+            } else {
+                $nav->setImage(Icon::create('evaluation+new', ICON::ROLE_ATTENTION, ["title" => $message]));
+            }
             return $nav;
         }
     }
@@ -49,9 +53,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     {
         $this->setId($course_id);
         if ($this->isVisible()) {
-            $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this),array(),'show');
-            $tab->setActiveImage(Assets::image_path('icons/16/black/evaluation'));
-            $tab->setImage(Assets::image_path('icons/16/white/evaluation'));
+            $tab = new Navigation(Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME, PluginEngine::getUrl($this), array(), 'show');
+            $tab->setImage(Icon::create('evaluation', 'info_alt'));
             return array(get_class($this) => $tab);
         }
     }
@@ -263,7 +266,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     function show_action()
     {
         if (!$this->isVisible()) return;
-        PageLayout::setTitle($_SESSION['SessSemName']['header_line'] . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
+        PageLayout::setTitle(Context::getHeaderLine()  . ' - ' . Config::get()->UNIZENSUSPLUGIN_DISPLAYNAME);
         Navigation::activateItem('/course/' . get_class($this));
         ob_start();
         $pluginrelativepath = $this->getPluginUrl();
