@@ -49,7 +49,7 @@ class ZensusadminController extends PluginController
             foreach (Request::optionArray('zensus') as $range_id => $d) {
                 $inserted += $db->execute("INSERT INTO datafields_entries (datafield_id,range_id,content,chdate) VALUES (?,?,'1',UNIX_TIMESTAMP())", [$datafield_id, $range_id]);
             }
-            PageLayout::postSuccess(_("Änderungen gespeichert."));
+            PageLayout::postSuccess(_("Ã„nderungen gespeichert."));
         }
         $this->redirect(URLHelper::getURL('dispatch.php/admin/courses'));
     }
@@ -100,7 +100,7 @@ class ZensusadminController extends PluginController
                 $stored += $df->store();
             }
             if ($stored) {
-                PageLayout::postSuccess(_("Änderungen gespeichert."));
+                PageLayout::postSuccess(_("Ã„nderungen gespeichert."));
             }
         }
         $this->data = $this->getSeminareData($this->plugin->user_is_eval_admin ? $this->filter['institute'] :  $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $this->semester);
@@ -124,7 +124,12 @@ class ZensusadminController extends PluginController
             }
             $tmpname = md5(uniqid('tmp'));
             if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
-                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation_Auswahl.csv', 4, 'force'));
+                $this->redirect(
+                    FileManager::getDownloadURLForTemporaryFile(
+                        $tmpname,
+                        'Veranstaltungen_Lehrevaluation_Auswahl.csv'
+                    )
+                );
                 return;
             }
         }
@@ -172,7 +177,12 @@ class ZensusadminController extends PluginController
             }
             $tmpname = md5(uniqid('tmp'));
             if (array_to_csv($csvdata, $GLOBALS['TMP_PATH'] . '/' . $tmpname, $captions)) {
-                $this->redirect(GetDownloadLink($tmpname, 'Veranstaltungen_Lehrevaluation_Status.csv', 4, 'force'));
+                $this->redirect(
+                    FileManager::getDownloadURLForTemporaryFile(
+                        $tmpname,
+                        'Veranstaltungen_Lehrevaluation_Status.csv',
+                    )
+                );
                 return;
             }
         }
@@ -207,7 +217,7 @@ class ZensusadminController extends PluginController
                 }
             }
             if ($ok) {
-                PageLayout::postSuccess(_("Start- Endzeiten wurden geändert."));
+                PageLayout::postSuccess(_("Start- Endzeiten wurden geÃ¤ndert."));
             }
             return $this->redirect($this->url_for('/' . $return_to));
         }
@@ -230,7 +240,7 @@ class ZensusadminController extends PluginController
                     [$this->plugin->zensuspluginid, 'sem' . $seminar_id, $set_to_status]);
             }
             if ($ok) {
-                PageLayout::postSuccess(_("Pluginstatus wurde geändert."));
+                PageLayout::postSuccess(_("Pluginstatus wurde geÃ¤ndert."));
             }
             return $this->redirect($this->url_for('/status'));
         }
@@ -265,7 +275,7 @@ class ZensusadminController extends PluginController
         $GLOBALS['perm']->check('admin');
         $this->institute = Institute::find($this->filter['institute']);
         if (!$this->institute) {
-            return $this->render_text(MessageBox::info(_("Bitte wählen sie eine Einrichtung aus!")));
+            return $this->render_text(MessageBox::info(_("Bitte wÃ¤hlen sie eine Einrichtung aus!")));
         }
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         if (Request::submitted('save') && $this->institute && $this->semester) {
@@ -281,7 +291,7 @@ class ZensusadminController extends PluginController
                 $ok = $db->execute("DELETE FROM datafields_entries WHERE datafield_id=? AND range_id IN (?)", [UniZensusPlugin::$datafield_id_wdhl, $courses]);
             }
             if ($ok) {
-                PageLayout::postSuccess(_("Wiederholung für alle Veranstaltungen der Einrichtung wurde geändert."));
+                PageLayout::postSuccess(_("Wiederholung fÃ¼r alle Veranstaltungen der Einrichtung wurde geÃ¤ndert."));
             }
             return $this->redirect($this->url_for('/selection'));
         }

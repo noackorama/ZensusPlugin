@@ -1,7 +1,7 @@
 <p>
-    <?=_("Für den Import der Veranstaltungsdaten in das Zensus System müssen sie dort ein Authentifizierungstoken hinterlegen.");?>
+    <?=_("FÃ¼r den Import der Veranstaltungsdaten in das Zensus System mÃ¼ssen sie dort ein Authentifizierungstoken hinterlegen.");?>
     <br>
-    <?=_("Hier können Sie ein Token für Ihre aktuelle Nutzerkennung generieren.");?>
+    <?=_("Hier kÃ¶nnen Sie ein Token fÃ¼r Ihre aktuelle Nutzerkennung generieren.");?>
 </p>
 <div>
     <span style="font-weight:bold; padding-right: 10px;"><?=_("Nutzerkennung:")?></span>

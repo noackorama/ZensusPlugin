@@ -12,7 +12,7 @@ function zensus_xmlheader($ex_sem = '')
 {
 global $UNI_NAME_CLEAN, $SOFTWARE_VERSION;
     $semester = $ex_sem ? Semester::find($ex_sem) : Semester::findCurrent();
-    $xml_tag_string = "<" . "?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+    $xml_tag_string = "<" . "?xml version=\"1.0\" encoding=\"utf-8\"?" . ">\n";
     $xml_tag_string .= "<studip version=\"" . zensus_xmlescape ($SOFTWARE_VERSION) . "\" logo=\"". zensus_xmlescape ($GLOBALS['ASSETS_URL']."images/logos/logo2b.gif") . "\"";
     if ($UNI_NAME_CLEAN != "") $xml_tag_string .= " uni=\"" . zensus_xmlescape ($UNI_NAME_CLEAN) . "\"";
     if ($semester)
@@ -110,9 +110,9 @@ function zensus_xmlescape($string, $utf8encode = true)
 {
     $string = preg_replace('/[\x00-\x08\x0b\x0c\x0e-\x1f]/', '', $string);
     if ($utf8encode) {
-        return htmlspecialchars(studip_utf8encode($string), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
     } else {
-        return htmlspecialchars(html_entity_decode($string, ENT_QUOTES, 'cp1252'), ENT_QUOTES, 'cp1252', false);
+        return htmlspecialchars(html_entity_decode($string, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8', false);
     }
 }
 
@@ -166,7 +166,7 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
 
     zensus_output_data ( zensus_xmlheader(), $o_mode);
 
-    if ($auth_uid && get_global_perm($auth_uid) != 'root') {
+    if ($auth_uid && $GLOBALS['perm']->get_perm($auth_uid) != 'root') {
         if ($range_id == 'root') {
             $db->query("SELECT Institut_id, fakultaets_id FROM user_inst INNER JOIN Institute USING (Institut_id) WHERE inst_perms = 'admin' AND user_id = '" . $auth_uid . "' ORDER BY Institut_id=fakultaets_id");
             $faks = array();

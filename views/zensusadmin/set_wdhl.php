@@ -1,5 +1,5 @@
-<h1><?=sprintf(_('Wiederholung setzen für %s'), $institute->name)?></h1>
-<p><?=_("Wiederholung der Abfrage bei mehr als 1. Lehrenden. Diese Einstellung wird immer auf alle Veranstaltungen der ausgewählten Einrichtung angewendet.")?></p>
+<h1><?=sprintf(_('Wiederholung setzen fÃ¼r %s'), $institute->name)?></h1>
+<p><?=_("Wiederholung der Abfrage bei mehr als 1. Lehrenden. Diese Einstellung wird immer auf alle Veranstaltungen der ausgewÃ¤hlten Einrichtung angewendet.")?></p>
 <form class="default" action="<?=$controller->link_for('/set_wdhl')?>" method="post">
     <?= CSRFProtection::tokenTag() ?>
     <fieldset>
@@ -7,6 +7,6 @@
         <label><input type="radio" name="wdhl" value="0"><?=_('Ausschalten')?></label>
     </fieldset>
     <div data-dialog-button>
-        <?=Studip\Button::createAccept(_('Übernehmen'), 'save')?>
+        <?=Studip\Button::createAccept(_('Ãœbernehmen'), 'save')?>
     </div>
 </form>

@@ -5,14 +5,14 @@
 *
 *
 *
-* @author        AndrÈ Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
+* @author        Andr√© Noack <noack@data-quest.de>, Suchi & Berg GmbH <info@data-quest.de>
 * @version        $Id: UniZensusAdminPlugin.class.php,v 1.6 2013/04/04 15:17:49 anoack Exp $
 */
 // +---------------------------------------------------------------------------+
 // This file is part of Stud.IP
 // UniZensusAdminPlugin.class.php
 //
-// Copyright (C) 2007 AndrÈ Noack <noack@data-quest.de>
+// Copyright (C) 2007 Andr√© Noack <noack@data-quest.de>
 // Suchi & Berg GmbH <info@data-quest.de>
 // +---------------------------------------------------------------------------+
 // This program is free software; you can redistribute it and/or
@@ -70,7 +70,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
 
     public function useMultimode()
     {
-        return _('zur Lehrevaluation ausw‰hlen');
+        return _('zur Lehrevaluation ausw√§hlen');
     }
 
     public function getAdminCourseActionTemplate($course_id, $values = null, $semester = null) {

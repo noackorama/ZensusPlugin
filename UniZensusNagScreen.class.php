@@ -44,7 +44,7 @@ EOT;
                 $img_url = $this->getPluginUrl($this) . '/images/danger.png';
                 $script = <<<EOT
 jQuery('document').ready(function(){
-    if(jQuery('img[title*="Die Evaluation läuft"]').length + jQuery('image[alt*="Die Evaluation läuft"]').length > 0 && jQuery('#UniZensusNagScreenDialogbox').length == 0) {
+    if(jQuery('img[title*="Die Evaluation lÃ¤uft"]').length + jQuery('image[alt*="Die Evaluation lÃ¤uft"]').length > 0 && jQuery('#UniZensusNagScreenDialogbox').length == 0) {
     STUDIP.UniZensusNagScreen = {};
     STUDIP.UniZensusNagScreen.dialog = jQuery('<div id="UniZensusNagScreenDialogbox"><img style="padding: 5px" src="$img_url" align="right"><span>' + '$content_box' + '</span></div>').dialog({
                        show: '',
