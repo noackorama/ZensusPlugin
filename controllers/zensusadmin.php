@@ -180,7 +180,7 @@ class ZensusadminController extends PluginController
                 $this->redirect(
                     FileManager::getDownloadURLForTemporaryFile(
                         $tmpname,
-                        'Veranstaltungen_Lehrevaluation_Status.csv',
+                        'Veranstaltungen_Lehrevaluation_Status.csv'
                     )
                 );
                 return;
