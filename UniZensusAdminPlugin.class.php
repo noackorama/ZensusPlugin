@@ -633,7 +633,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $xml_names_lecture['resultpublic'] = array($this, 'getExportData');
         $xml_names_lecture['resultstore'] = array($this, 'getExportData');
         */
-        $xml_names_lecture['free1'] = 'visible';
+        $xml_names_lecture['visible'] = 'free1';
 
         $authcode = Request::option('authcode');
         if ($authcode) {
@@ -659,7 +659,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
             }
         }
         $range_id = Request::option('range_id', 'root');
-        $ex_only_visible = Request::int('ex_only_visible', 0);
+        $ex_only_visible = Request::int('ex_only_visible', 1);
         $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
         $ex_sem_class = Request::intArray('ex_sem_class');
         if (!count($ex_sem_class)) $ex_sem_class[] = 1;
