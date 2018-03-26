@@ -633,6 +633,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         $xml_names_lecture['resultpublic'] = array($this, 'getExportData');
         $xml_names_lecture['resultstore'] = array($this, 'getExportData');
         */
+        $xml_names_lecture['free1'] = 'visible';
 
         $authcode = Request::option('authcode');
         if ($authcode) {
