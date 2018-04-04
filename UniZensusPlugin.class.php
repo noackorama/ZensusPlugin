@@ -309,7 +309,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 echo MessageBox::success(_("Die Einstellungen wurden gespeichert."));
             }
             $this->getCourseAndUserStatus();
-            echo chr(10) . '<form action="?" method="post">';
+            echo chr(10) . '<form action="' . URLHelper::getLink() . '" method="post">';
             echo chr(10) . (class_exists('CSRFProtection') ? CSRFProtection::tokenTag() : '') ;
 
             echo chr(10) . '<fieldset><legend>'._("Einstellungen").'</legend>';
