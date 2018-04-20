@@ -21,7 +21,7 @@ $widget->addCheckbox(
     $controller->link_for('/status', ['toggle_zensus_nonactive' => 1])
 );
 $widget->addCheckbox(
-    _("Plugin aktiv"),
+    _("Übertragung an Zensus aktiv"),
     $filter['plugin_activated'],
     $controller->link_for('/status', ['toggle_plugin_active' => 1])
 );
@@ -48,7 +48,7 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <th data-sort="text"><?=_("TN")?></th>
             <th data-sort="text"><?=_("Zensus TN")?></th>
             <th data-sort="text"><?=_("Zensus Status")?></th>
-            <th data-sort="text"><?=_("Plugin aktiv")?></th>
+            <th data-sort="text"><?=_("Evaluation")?></th>
             <th data-sort="text"><?=_("Ergebnis")?></th>
             <th data-sort="text"><?=_("Studierende")?></th>
             <th data-sort="htmldata"><?=_("Start")?></th>
@@ -65,7 +65,7 @@ echo $this->render_partial('zensusadmin/_widgets.php');
             <td><?=htmlready($r['teilnehmer_anzahl_aktuell'])?></td>
             <td><?=htmlready($r['zensus_numvotes'])?></td>
             <td><?=htmlready($r['zensus_status'])?></td>
-            <td><?=$r['plugin_activated'] ? _('Ja') : _('Nein')?></td>
+            <td><?=$r['evaluation'] ? _('Ja') : _('Nein')?></td>
             <td><?=htmlready($r['eval_public'])?></td>
             <td><?=htmlready($r['eval_public_stud'])?></td>
             <td data-sort-value="<?=htmlready(strtotime($r['eval_start_time']))?>"><?=$r['eval_start_time']?></td>
@@ -73,10 +73,15 @@ echo $this->render_partial('zensusadmin/_widgets.php');
         </tr>
         <? endforeach;?>
         </tbody>
+        <tfoot>
+        <tr>
+            <td style="padding-left:5px" colspan="12"><label><input type="checkbox" name="all" value="1" data-proxyfor=":checkbox[name^=selected_courses]"> <?=_("Alle auswählen")?></label></td>
+        </tr>
+        </tfoot>
     </table>
     <div>
         <?=Studip\Button::create(_("Nachricht an Lehrende"), 'mail', ['onClick' => 'STUDIP.Dialog.fromElement(this,{});return false;']);?>
-        <?=Studip\Button::create(_("Plugin aktivieren/deaktivieren"), 'activate_plugin', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
+        <?=Studip\Button::create(_("Zur Evaluation aus/abwählen"), 'activate_plugin', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
         <?=Studip\Button::create(_("Start/Endzeit setzen"), 'set_timespan', ['onClick' => 'STUDIP.Dialog.fromElement(this,{\'size\' : \'auto\'});return false;']);?>
     </div>
 </form>

@@ -8,20 +8,33 @@ class ZensusadminController extends PluginController
         $this->filter =& $_SESSION[__CLASS__]['filter'];
         if (Request::option("institut_id")) {
             $GLOBALS['user']->cfg->store("MY_INSTITUTES_DEFAULT", Request::option("institut_id"));
-            $this->filter['institute'] = Request::option("institut_id");
         }
         if (Request::option("semester_id")) {
             $GLOBALS['user']->cfg->store("MY_COURSES_SELECTED_CYCLE", Request::option("semester_id"));
         }
+        if (!Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE)) {
+            $GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE = Semester::findCurrent()->id;
+        }
         if (!$this->plugin->user_is_eval_admin) {
-            $institut_ids = array_map(function ($data) {
-                return $data['Institut_id'];
-            }, Institute::getMyInstitutes());
-            if (!in_array($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $institut_ids)) {
-                $GLOBALS['user']->cfg->store("MY_INSTITUTES_DEFAULT", $institut_ids[0]);
-                $this->filter['institute'] = $institut_ids[0];
+            $z_role = current(array_filter(RolePersistence::getAssignedRoles(User::findCurrent()->id), function ($r) {
+                return $r->rolename == 'eval_agent';
+            }));
+            $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes(User::findCurrent()->id, $z_role->roleid));
+            $this->z_institutes = $z_institutes;
+            if (!count($z_institutes)) {
+                if (!$GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT) {
+                    $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT = 'all';
+                }
+            } else {
+                if (!in_array($GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $z_institutes)) {
+                    $GLOBALS['user']->cfg->store("MY_INSTITUTES_DEFAULT", $z_institutes[0]);
+                    $this->filter['institute'] = $z_institutes[0];
+                }
             }
         } else {
+            if (!$GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT) {
+                $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT = 'all';
+            }
             if (Request::submitted('toggle_zensus_active')) {
                 $this->filter['zensus_activated'] = $this->filter['zensus_activated'] ? 0 : 1;
                 $this->filter['zensus_deactivated'] = 0;
@@ -34,14 +47,15 @@ class ZensusadminController extends PluginController
                 $this->filter['plugin_activated'] = $this->filter['plugin_activated'] ? 0 : 1;
             }
         }
+        $this->filter['institute'] = $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT;
+
     }
 
     public function changestatus_action()
     {
         $GLOBALS['perm']->check('admin');
         CSRFProtection::verifyUnsafeRequest();
-        $uplugin = PluginManager::getInstance()->getPlugin('UniZensusPlugin');
-        $datafield_id = UniZensusPlugin::$datafield_id_vorgesehen;
+        $datafield_id = UniZensusPlugin::$datafield_id_markiert;
         $db = DBManager::get();
         if ($datafield_id) {
             $inserted = 0;
@@ -56,18 +70,29 @@ class ZensusadminController extends PluginController
 
     public function selection_action()
     {
-        $GLOBALS['perm']->check('admin');
+        if (!$this->plugin->user_is_eval_agent) {
+            throw new AccessDeniedException();
+        }
 
         $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
         $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
         $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
         $this->datafield_wdhl = DataField::find(UniZensusPlugin::$datafield_id_wdhl);
+        $this->datafield_sprache = DataField::find(UniZensusPlugin::$datafield_id_sprache);
 
         if (Request::submitted('mail')) {
             return $this->mail_action();
         }
-        if (Request::submitted('activate_plugin')) {
-            return $this->activate_plugin_action();
+        if (count(Request::getArray('selected_courses'))) {
+            $this->courses = array();
+            foreach(Request::getArray('selected_courses') as $key => $value) {
+                if (!@DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_vorgesehen, $key,''])->content) {
+                    $this->courses[$key] = $value;
+                }
+            }
+            if (count(Request::getArray('selected_courses')) != count($this->courses)) {
+                PageLayout::postInfo(_('Grün hinterlegte Veranstaltungen können nicht bearbeitet werden!'));
+            }
         }
         if (Request::submitted('set_timespan')) {
             return $this->set_timespan_action();
@@ -81,31 +106,15 @@ class ZensusadminController extends PluginController
         if (Request::submitted('set_form')) {
             return $this->set_form_action();
         }
+        if (Request::submitted('set_sprache')) {
+            return $this->set_sprache_action();
+        }
         Navigation::activateItem('/browse/my_courses/zensusadmin_selection');
         PageLayout::addSqueezePackage('tablesorter');
 
-
-
-        if (Request::submitted('save')) {
-            $stored = false;
-            foreach ($_REQUEST['datafields'] as $course_id => $df_ids) {
-                $df = DataFieldEntry::createDataFieldEntry($this->datafield_fb, $course_id);
-                $df->setValueFromSubmit($df_ids[UniZensusPlugin::$datafield_id_fb]);
-                $stored += $df->store();
-                $df = DataFieldEntry::createDataFieldEntry($this->datafield_form, $course_id);
-                $df->setValueFromSubmit($df_ids[UniZensusPlugin::$datafield_id_form]);
-                $stored += $df->store();
-                $df = DataFieldEntry::createDataFieldEntry($this->datafield_wdhl, $course_id);
-                $df->setValueFromSubmit($df_ids[UniZensusPlugin::$datafield_id_wdhl]);
-                $stored += $df->store();
-            }
-            if ($stored) {
-                PageLayout::postSuccess(_("Änderungen gespeichert."));
-            }
-        }
         $this->data = $this->getSeminareData($this->plugin->user_is_eval_admin ? $this->filter['institute'] :  $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $this->semester);
         if (Request::submitted('export')) {
-            $captions = array('Institut', 'Nr.', 'Titel', 'Lehrende', 'TN', 'Form der Teilnahme', 'Sprache', 'Art des Fragebogens', 'Wdh', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
+            $captions = array('Institut', 'Nr.', 'Titel', 'Lehrende', 'TN', 'Status Evaluation', 'Form der Teilnahme', 'Sprache', 'Art des Fragebogens', 'Wdh', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
             $csvdata = array();
             $c = 0;
             foreach($this->data as $course_id => $r) {
@@ -114,8 +123,9 @@ class ZensusadminController extends PluginController
                 $csvdata[$c][] = $r['name'];
                 $csvdata[$c][] = join(',', $r['dozenten']);
                 $csvdata[$c][] = $r['teilnehmer_anzahl_aktuell'];
+                $csvdata[$c][] = $r['evaluation'] ? 'Ja' : 'Nein';
                 $csvdata[$c][] = DataFieldEntry::createDataFieldEntry($this->datafield_fb, $course_id, $r['fb'])->getDisplayValue();
-                $csvdata[$c][] = $r['sprache'];
+                $csvdata[$c][] = DataFieldEntry::createDataFieldEntry($this->datafield_sprache, $course_id, $r['sprache'])->getDisplayValue();
                 $csvdata[$c][] = DataFieldEntry::createDataFieldEntry($this->datafield_form, $course_id, $r['form'])->getDisplayValue();
                 $csvdata[$c][] = $r['wdhl'] ? 'Ja' : 'Nein';
                 $csvdata[$c][] = $r['eval_start_time'];
@@ -145,6 +155,7 @@ class ZensusadminController extends PluginController
         if (Request::submitted('mail')) {
             return $this->mail_action();
         }
+        $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('activate_plugin')) {
             return $this->activate_plugin_action();
         }
@@ -158,7 +169,7 @@ class ZensusadminController extends PluginController
 
 
         if (Request::submitted('export')) {
-            $captions = array('Nr.', 'Titel', 'Lehrende', 'TN', 'Zensus TN', 'Zensus Status', 'Plugin aktiv', 'Ergebnis', 'Studierenden', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
+            $captions = array('Nr.', 'Titel', 'Lehrende', 'TN', 'Zensus TN', 'Zensus Status', 'Übertraggun an Zensus', 'Ergebnis', 'Studierenden', 'Erhebungszeitraum Start', 'Erhebungszeitraum Ende');
             $csvdata = array();
             $c = 0;
             foreach ($this->data as $course_id => $r) {
@@ -168,7 +179,7 @@ class ZensusadminController extends PluginController
                 $csvdata[$c][] = $r['teilnehmer_anzahl_aktuell'];
                 $csvdata[$c][] = $r['zensus_numvotes'];
                 $csvdata[$c][] = $r['zensus_status'];
-                $csvdata[$c][] = $r['plugin_activated'];
+                $csvdata[$c][] = $r['evaluation'] ? 'Ja' : 'Nein';
                 $csvdata[$c][] = $r['eval_public'];
                 $csvdata[$c][] = $r['eval_public_stud'];
                 $csvdata[$c][] = $r['eval_start_time'];
@@ -191,23 +202,21 @@ class ZensusadminController extends PluginController
 
     public function set_timespan_action($return_to = 'status')
     {
-        /*if (!$this->plugin->user_is_eval_admin) {
+        if (!$this->plugin->user_is_eval_agent) {
             throw new AccessDeniedException();
-        }*/
-        $GLOBALS['perm']->check('admin');
-        $this->courses = Request::getArray('selected_courses');
+        }
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
             $db = DBManager::get();
             $ok = 0;
             if (Request::get('autodate')) {
-                $ok += $db->execute("DELETE FROM datafields_entries WHERE range_id IN (?) AND datafield_id=?", [array_keys($this->courses), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION')]);
-                $ok += $db->execute("DELETE FROM datafields_entries WHERE range_id IN (?) AND datafield_id=?", [array_keys($this->courses), md5('UNIZENSUSPLUGIN_END_EVALUATION')]);
+                $ok += $db->execute("DELETE FROM datafields_entries WHERE range_id IN (?) AND datafield_id=?", [array_keys(Request::getArray('selected_courses')), md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION')]);
+                $ok += $db->execute("DELETE FROM datafields_entries WHERE range_id IN (?) AND datafield_id=?", [array_keys(Request::getArray('selected_courses')), md5('UNIZENSUSPLUGIN_END_EVALUATION')]);
             } else {
                 $startdate = Request::get('startdate') ? strftime('%Y-%m-%d', strtotime(Request::get('startdate'))) : null;
                 $enddate = Request::get('enddate') ? strftime('%Y-%m-%d', strtotime(Request::get('enddate'))) : null;
 
-                foreach (array_keys($this->courses) as $seminar_id) {
+                foreach (array_keys(Request::getArray('selected_courses')) as $seminar_id) {
                     if ($startdate) {
                         $ok += $db->execute("REPLACE INTO datafields_entries (range_id, datafield_id, content, chdate) VALUES (?,?,?,UNIX_TIMESTAMP())", [$seminar_id, md5('UNIZENSUSPLUGIN_BEGIN_EVALUATION'), $startdate]);
                     }
@@ -229,15 +238,19 @@ class ZensusadminController extends PluginController
         if (!$this->plugin->user_is_eval_admin) {
             throw new AccessDeniedException();
         }
-        $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
             $set_to_status = Request::get('plugin_active') ? 'on' : 'off';
             $db = DBManager::get();
             $ok = 0;
-            foreach(array_keys($this->courses) as $seminar_id) {
+            foreach(array_keys(Request::getArray('selected_courses')) as $seminar_id) {
                 $ok += $db->execute("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES (?,?,?)",
                     [$this->plugin->zensuspluginid, 'sem' . $seminar_id, $set_to_status]);
+                if ($set_to_status === 'off') {
+                    $db->execute("DELETE FROM datafields_entries WHERE datafield_id = ? AND range_id = ?", [UniZensusPlugin::$datafield_id_vorgesehen, $seminar_id]);
+                } else {
+                    $db->execute("REPLACE INTO datafields_entries (content,datafield_id,range_id,sec_range_id,chdate) VALUES (?,?,?,'',UNIX_TIMESTAMP())", ['1', UniZensusPlugin::$datafield_id_vorgesehen , $seminar_id]);
+                }
             }
             if ($ok) {
                 PageLayout::postSuccess(_("Pluginstatus wurde geändert."));
@@ -249,14 +262,15 @@ class ZensusadminController extends PluginController
 
     public function set_frage_action()
     {
-        $GLOBALS['perm']->check('admin');
+        if (!$this->plugin->user_is_eval_agent) {
+            throw new AccessDeniedException();
+        }
         $this->datafield_form = DataField::find(UniZensusPlugin::$datafield_id_form);
-        $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
             $stored = false;
             $submit_value = $_REQUEST['set_frage'][UniZensusPlugin::$datafield_id_form];
-            foreach (array_keys($this->courses) as $course_id) {
+            foreach (array_keys(Request::getArray('selected_courses')) as $course_id) {
                 $df = DataFieldEntry::createDataFieldEntry($this->datafield_form, $course_id);
                 $df->setValueFromSubmit($submit_value);
                 $stored += $df->store();
@@ -270,9 +284,35 @@ class ZensusadminController extends PluginController
         $this->render_template('zensusadmin/set_frage');
     }
 
+    public function set_sprache_action()
+    {
+        if (!$this->plugin->user_is_eval_agent) {
+            throw new AccessDeniedException();
+        }
+        $this->datafield_sprache = DataField::find(UniZensusPlugin::$datafield_id_sprache);
+        if (Request::submitted('save')) {
+            CSRFProtection::verifyUnsafeRequest();
+            $stored = false;
+            $submit_value = $_REQUEST['set_sprache'][UniZensusPlugin::$datafield_id_sprache];
+            foreach (array_keys(Request::getArray('selected_courses')) as $course_id) {
+                $df = DataFieldEntry::createDataFieldEntry($this->datafield_sprache, $course_id);
+                $df->setValueFromSubmit($submit_value);
+                $stored += $df->store();
+            }
+            if ($stored) {
+                PageLayout::postSuccess(_("Sprache gespeichert."));
+            }
+
+            return $this->redirect($this->url_for('/selection'));
+        }
+        $this->render_template('zensusadmin/set_sprache');
+    }
+
     public function set_wdhl_action()
     {
-        $GLOBALS['perm']->check('admin');
+        if (!$this->plugin->user_is_eval_agent) {
+            throw new AccessDeniedException();
+        }
         $this->institute = Institute::find($this->filter['institute']);
         if (!$this->institute) {
             return $this->render_text(MessageBox::info(_("Bitte wählen sie eine Einrichtung aus!")));
@@ -300,14 +340,15 @@ class ZensusadminController extends PluginController
 
     public function set_form_action()
     {
-        $GLOBALS['perm']->check('admin');
+        if (!$this->plugin->user_is_eval_agent) {
+            throw new AccessDeniedException();
+        }
         $this->datafield_fb = DataField::find(UniZensusPlugin::$datafield_id_fb);
-        $this->courses = Request::getArray('selected_courses');
         if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
             $stored = false;
             $submit_value = $_REQUEST['set_form'][UniZensusPlugin::$datafield_id_fb];
-            foreach (array_keys($this->courses) as $course_id) {
+            foreach (array_keys(Request::getArray('selected_courses')) as $course_id) {
                 $df = DataFieldEntry::createDataFieldEntry($this->datafield_fb, $course_id);
                 $df->setValueFromSubmit($submit_value);
                 $stored += $df->store();
@@ -334,7 +375,9 @@ class ZensusadminController extends PluginController
 
     public function mail_action()
     {
-        $GLOBALS['perm']->check('admin');
+        if (!$this->plugin->user_is_eval_agent) {
+            throw new AccessDeniedException();
+        }
         $user_sql = "SELECT DISTINCT username " .
             "FROM auth_user_md5 u " .
             "INNER JOIN seminar_user su USING(user_id) " .
@@ -352,7 +395,7 @@ class ZensusadminController extends PluginController
     {
         if ($institut_id != 'all') $institut = is_object($institut_id) ? $institut_id : Institute::find($institut_id);
         $semester = is_object($semester_id) ? $semester_id : Semester::find($semester_id);
-        $datafield_id = UniZensusPlugin::$datafield_id_vorgesehen;
+        $datafield_id = UniZensusPlugin::$datafield_id_markiert;
 
         $data = [];
         $db = DBManager::get();
@@ -396,13 +439,14 @@ INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id
                 $data[$course_id]['fb'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_fb,$course_id,''])->content;
                 $data[$course_id]['form'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_form,$course_id,''])->content;
                 $data[$course_id]['sprache'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_sprache,$course_id,''])->content;
+                $data[$course_id]['evaluation'] = @DatafieldEntryModel::find([UniZensusPlugin::$datafield_id_vorgesehen,$course_id,''])->content;
                 $uplugin = PluginManager::getInstance()->getPlugin('UniZensusPlugin');
                 if ($uplugin) {
                     $uplugin->setId($course_id);
+                    list($starttime, $endtime) = $uplugin->getCourseEvaluationTimeframe();
+                    $data[$course_id]['eval_start_time'] = $starttime ? strftime('%x', $starttime) : '';
+                    $data[$course_id]['eval_end_time'] = $endtime ? strftime('%x', $endtime) : '';
                     if ($uplugin->isActivated($course_id)) {
-                        list($starttime, $endtime) = $uplugin->getCourseEvaluationTimeframe();
-                        $data[$course_id]['eval_start_time'] = $starttime ? strftime('%x', $starttime) : '';
-                        $data[$course_id]['eval_end_time'] = $endtime ? strftime('%x', $endtime) : '';
                         $data[$course_id]['plugin_activated'] = true;
                         if ($fetch_zensus_data) {
                             $data[$course_id] = array_merge($data[$course_id], UniZensusPlugin::getAdditionalExportData($course_id));
@@ -425,7 +469,7 @@ INNER JOIN datafields_entries ON range_id = seminare.seminar_id AND datafield_id
                     unset($data[$course_id]);
                 }
                 if (@$filter['plugin_activated'] == 1
-                    && !@$data[$course_id]['plugin_activated']) {
+                    && !@$data[$course_id]['evaluation']) {
                     unset($data[$course_id]);
                 }
             }

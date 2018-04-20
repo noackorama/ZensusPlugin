@@ -35,6 +35,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
 {
 
     public $user_is_eval_admin;
+    public $user_is_eval_agent;
     public $zensuspluginid;
 
 
@@ -42,11 +43,13 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
     {
         parent::__construct();
         $this->user_is_eval_admin = $GLOBALS['perm']->have_perm('root') || RolePersistence::isAssignedRole($GLOBALS['user']->id, 'eval_admin') ;
-
-        if (Navigation::hasItem("/browse/my_courses") && $GLOBALS['perm']->have_perm('admin')) {
+        $this->user_is_eval_agent = $this->user_is_eval_admin || RolePersistence::isAssignedRole($GLOBALS['user']->id, 'eval_agent') ;
+        if (Navigation::hasItem("/browse/my_courses")) {
             $my_courses = Navigation::getItem("/browse/my_courses");
-            $auswahl = new Navigation(_("Unizensus Auswahl"), PluginEngine::getURL($this, array(), "zensusadmin/selection"));
-            $my_courses->addSubNavigation('zensusadmin_selection', $auswahl);
+            if ($this->user_is_eval_agent) {
+                $auswahl = new Navigation(_("Unizensus Auswahl"), PluginEngine::getURL($this, array(), "zensusadmin/selection"));
+                $my_courses->addSubNavigation('zensusadmin_selection', $auswahl);
+            }
             if ($this->user_is_eval_admin) {
                 $status = new Navigation(_("Unizensus Status"), PluginEngine::getURL($this, array(), "zensusadmin/status"));
                 $my_courses->addSubNavigation('zensusadmin_status', $status);
@@ -76,7 +79,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
     public function getAdminCourseActionTemplate($course_id, $values = null, $semester = null) {
         $factory = $GLOBALS['template_factory'];
         $template = $factory->open("shared/string");
-        $value = (int)UniZensusPlugin::getDatafieldValue(UniZensusPlugin::$datafield_id_vorgesehen, $course_id);
+        $value = (int)UniZensusPlugin::getDatafieldValue(UniZensusPlugin::$datafield_id_markiert, $course_id);
         $input = '
         <label>
         <input type="hidden" name="all_sem[]" value="' . $course_id . '">
@@ -146,6 +149,9 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
         if ($key == 'wdhl') {
             return zensus_xmltag($key, (int)$data[$seminar_id]['wdhl']);
         }
+        if ($key == 'sprache') {
+            return zensus_xmltag($key, $data[$seminar_id]['sprache']);
+        }
         if ($key == 'flif_fol') {
             $value = $data[$seminar_id]['flif_course'] + $data[$seminar_id]['fol_course']*2;
             return zensus_xmltag($key, $value);
@@ -177,6 +183,8 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
         $xml_names_lecture['form_teilnahme'] = array($this, 'getExportData');
         $xml_names_lecture['art_fragebogen'] = array($this, 'getExportData');
         $xml_names_lecture['wdhl'] = array($this, 'getExportData');
+        $xml_names_lecture['sprache'] = array($this, 'getExportData');
+
         $authcode = Request::option('authcode');
         if ($authcode) {
             $auth_uid = DbManager::get()->query("SELECT user_id FROM user_config WHERE field='UNIZENSUSPLUGIN_AUTH_TOKEN' AND value='$authcode'")->fetchColumn();
@@ -201,7 +209,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
             }
         }
         $range_id = Request::option('range_id', 'root');
-        $ex_only_visible = Request::int('ex_only_visible', 1);
+        $ex_only_visible = Request::int('ex_only_visible', 0);
         $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
         $ex_sem_class = Request::intArray('ex_sem_class');
         if (!count($ex_sem_class)) $ex_sem_class[] = 1;

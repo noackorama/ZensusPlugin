@@ -1,20 +1,19 @@
 <?php
-
 $list = new SelectWidget(_('Einrichtung'), URLHelper::getURL("?"), 'institut_id');
-if ($plugin->user_is_eval_admin) {
+if ($plugin->user_is_eval_admin || ($plugin->user_is_eval_agent && count($this->controller->z_institutes) === 0)) {
     $list->addElement(new SelectElement('all', _('Alle'), $filter['institute'] === 'all'), 'select-all');
     foreach (Institute::getInstitutes() as $institut) {
         $list->addElement(
             new SelectElement(
                 $institut['Institut_id'],
                 (!$institut['is_fak'] ? "  " : "") . $institut['Name'],
-                $filter['institute'] === $institut['Institut_id']
+                $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT == $institut['Institut_id']
             ),
             'select-' . $institut['Name']
         );
     }
 } else {
-    foreach (Institute::getMyInstitutes() as $institut) {
+    foreach (Institute::findMany($this->controller->z_institutes, "ORDER BY Name") as $institut) {
         $list->addElement(
             new SelectElement(
                 $institut['Institut_id'],

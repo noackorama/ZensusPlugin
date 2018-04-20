@@ -15,6 +15,8 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
     public static $datafield_id_fb = '7ae912151565bbcb76c3ac60bbd2f56c';
     public static $datafield_id_form= 'a07535cf2f8a72df33c12ddfa4b53dde';
     public static $datafield_id_sprache= '4934123be5774218d63f94d1022d0242';
+    public static $datafield_id_markiert = '6c005542e66248e2a5560cdd0e02325d';
+
 
 
     private $id;
@@ -262,6 +264,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
         $ret['wdhl'] = self::getDatafieldValue(self::$datafield_id_wdhl, $seminar_id);
         $ret['fb'] = self::getDatafieldValue(self::$datafield_id_fb, $seminar_id);
         $ret['form'] = self::getDatafieldValue(self::$datafield_id_form, $seminar_id);
+        $ret['sprache'] = self::getDatafieldValue(self::$datafield_id_sprache, $seminar_id);
         $ret['eval_participants'] = self::getDatafieldValue(self::$datafield_id_teilnehmer, $seminar_id);
         $dozenten = CourseMember::findByCourseAndStatus($seminar_id, 'dozent');
         foreach($dozenten  as $dozent) {
@@ -325,7 +328,7 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
                 echo MessageBox::success(_("Die Einstellungen wurden gespeichert."));
             }
             $this->getCourseAndUserStatus();
-            echo chr(10) . '<form action="?" method="post">';
+            echo chr(10) . '<form action="' . URLHelper::getLink() . '" method="post">';
             echo chr(10) . (class_exists('CSRFProtection') ? CSRFProtection::tokenTag() : '') ;
 
             echo chr(10) . '<fieldset><legend>'._("Einstellungen").'</legend>';

@@ -1,4 +1,4 @@
-<h1><?=sprintf(_('Zensus Plugin für %s Veranstaltungen ein- oder ausschalten'), count($courses))?></h1>
+<h1><?=sprintf(_('Übertragung an Zensus für %s Veranstaltungen ein- oder ausschalten'), count($courses))?></h1>
 <form class="default" action="<?=$controller->link_for('/activate_plugin')?>" method="post">
 <?= CSRFProtection::tokenTag() ?>
     <?=addHiddenFields('selected_courses', $courses)?>
