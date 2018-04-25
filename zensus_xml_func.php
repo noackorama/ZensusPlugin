@@ -167,12 +167,17 @@ function zensus_export_range($range_id, $ex_sem, $o_mode = 'direct', $auth_uid =
     zensus_output_data ( zensus_xmlheader(), $o_mode);
 
     if ($auth_uid) {
-        if ($GLOBALS['perm']->get_perm($user_id) != 'root') {
+        $z_institutes = array();
 
+        if ($GLOBALS['perm']->get_perm($auth_uid) != 'root') {
             $z_role = current(array_filter(RolePersistence::getAssignedRoles($auth_uid), function ($r) {
                 return $r->rolename == 'ZensusAdmin';
             }));
             $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes($auth_uid, $z_role->roleid));
+        }
+
+        if (count($z_institutes)) {
+
             $z_institutes = array_unique(array_merge($z_institutes, Institute::findAndMapBySQL(function ($i) {
                 return $i->id;
             }, "fakultaets_id IN (?)", array($z_institutes))));

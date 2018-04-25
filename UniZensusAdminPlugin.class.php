@@ -511,6 +511,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 global $perm, $user;
                 $db = new DB_Seminar();
                 $db2 = new DB_Seminar();
+                $z_institutes = array();
                 if (!$perm->have_perm('root')) {
                     $z_role = current(array_filter(RolePersistence::getAssignedRoles($user->id), function ($r) {
                         return $r->rolename == 'ZensusAdmin';
@@ -682,6 +683,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
                 $ex_sem_class = Request::intArray('ex_sem_class');
                 if (!count($ex_sem_class)) $ex_sem_class[] = 1;
+                if (Course::exists($range_id)) $ex_sem_class = array();
                 ini_set('memory_limit', '256M');
                 while(ob_get_level()) ob_end_clean();
                 header("Content-type: text/xml; charset=utf-8");
@@ -701,4 +703,31 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 $rp->assignPluginRoles($plugin_id, range(1,7));
             }
 
+            function export_participants_action()
+            {
+                $ex_tstamp = Request::get('ex_tstamp');
+                list($y,$M,$d,$h,$m) = explode('-', $ex_tstamp);
+                $tstamp = mktime($h,$m,0,$M,$d,(int)$y);
+                $hash = md5(get_config('UNIZENSUSPLUGIN_SHARED_SECRET1') . $ex_tstamp . get_config('UNIZENSUSPLUGIN_SHARED_SECRET2'));
+                $range_id = Request::option('range_id');
+                if ((Request::option('ex_hash') != $hash || $tstamp < (time() - 600))) {
+                    $export_error = 'authorization failed';
+                }
+                try {
+                    $course = Seminar::getInstance($range_id);
+                } catch (Exception $e) {
+                     $export_error = 'course not found';
+                }
+                while(ob_get_level()) ob_end_clean();
+                if ($export_error) {
+                    header('HTTP/1.1 403 Forbidden');
+                    echo strip_tags($export_error);
+                    exit();
+                }
+                $st = DBManager::get()->prepare("SELECT a.user_id,a.email FROM seminar_user su INNER JOIN auth_user_md5 a USING(user_id) WHERE su.status IN ('autor') AND su.seminar_id=?");
+                $st->execute(array($range_id));
+                $participants = $st->fetchAll(PDO::FETCH_NUM);
+                header("Content-type: text/csv; charset=utf-8");
+                echo array_to_csv($participants);
             }
+}
