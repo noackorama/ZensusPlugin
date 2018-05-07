@@ -103,9 +103,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
         if ($GLOBALS['perm']->get_perm($user_id) == 'root') {
             return true;
         }
-        if ($this->user_is_eval_admin === null) {
-            $this->user_is_eval_admin = RolePersistence::isAssignedRole($user_id, 'eval_admin');
-        }
+        $this->user_is_eval_admin = RolePersistence::isAssignedRole($user_id, 'eval_admin');
         return $this->user_is_eval_admin;
     }
 
@@ -213,6 +211,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
         $ex_only_homeinst = Request::int('ex_only_homeinst', 1);
         $ex_sem_class = Request::intArray('ex_sem_class');
         if (!count($ex_sem_class)) $ex_sem_class[] = 1;
+        if (Course::exists($range_id)) $ex_sem_class = array();
         ini_set('memory_limit', '256M');
         while(ob_get_level()) ob_end_clean();
         header("Content-type: text/xml; charset=utf-8");
@@ -256,7 +255,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin, AdminCo
         $st = DBManager::get()->prepare("SELECT a.user_id,a.email FROM seminar_user su INNER JOIN auth_user_md5 a USING(user_id) WHERE su.status IN ('autor') AND su.seminar_id=?");
         $st->execute(array($range_id));
         $participants = $st->fetchAll(PDO::FETCH_NUM);
-        header("Content-type: text/csv; charset=windows-1252");
+        header("Content-type: text/csv; charset=utf-8");
         echo array_to_csv($participants);
     }
 

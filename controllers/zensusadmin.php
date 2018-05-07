@@ -313,26 +313,20 @@ class ZensusadminController extends PluginController
         if (!$this->plugin->user_is_eval_agent) {
             throw new AccessDeniedException();
         }
-        $this->institute = Institute::find($this->filter['institute']);
-        if (!$this->institute) {
-            return $this->render_text(MessageBox::info(_("Bitte wählen sie eine Einrichtung aus!")));
-        }
-        $this->semester = Semester::find($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
-        if (Request::submitted('save') && $this->institute && $this->semester) {
+        $this->datafield_wdhl = DataField::find(UniZensusPlugin::$datafield_id_wdhl);
+        if (Request::submitted('save')) {
             CSRFProtection::verifyUnsafeRequest();
-            $db = DBManager::get();
-            $ok = 0;
-            $courses = array_keys($this->getSeminareData($this->plugin->user_is_eval_admin ? $this->filter['institute'] :  $GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT, $this->semester));
-            if (Request::get('wdhl') == 1) {
-                foreach ($courses as $range_id) {
-                    $ok += $db->execute("REPLACE INTO datafields_entries (datafield_id,range_id,content,chdate) VALUES (?,?,'1',UNIX_TIMESTAMP())", [UniZensusPlugin::$datafield_id_wdhl, $range_id]);
-                }
-            } else {
-                $ok = $db->execute("DELETE FROM datafields_entries WHERE datafield_id=? AND range_id IN (?)", [UniZensusPlugin::$datafield_id_wdhl, $courses]);
+            $stored = false;
+            $submit_value = $_REQUEST['set_wdhl'] ?: null;
+            foreach (array_keys(Request::getArray('selected_courses')) as $course_id) {
+                $df = DataFieldEntry::createDataFieldEntry($this->datafield_wdhl, $course_id);
+                $df->setValueFromSubmit($submit_value);
+                $stored += $df->store();
             }
-            if ($ok) {
-                PageLayout::postSuccess(_("Wiederholung für alle Veranstaltungen der Einrichtung wurde geändert."));
+            if ($stored) {
+                PageLayout::postSuccess(_("Wiederholung gespeichert."));
             }
+
             return $this->redirect($this->url_for('/selection'));
         }
         $this->render_template('zensusadmin/set_wdhl');
