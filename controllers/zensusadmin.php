@@ -19,7 +19,7 @@ class ZensusadminController extends PluginController
             $z_role = current(array_filter(RolePersistence::getAssignedRoles(User::findCurrent()->id), function ($r) {
                 return $r->rolename == 'eval_agent';
             }));
-            $z_institutes = array_filter(RolePersistence::getAssignedRoleInstitutes(User::findCurrent()->id, $z_role->roleid));
+            $z_institutes = array_values(array_filter(RolePersistence::getAssignedRoleInstitutes(User::findCurrent()->id, $z_role->roleid)));
             $this->z_institutes = $z_institutes;
             if (!count($z_institutes)) {
                 if (!$GLOBALS['user']->cfg->MY_INSTITUTES_DEFAULT) {
@@ -364,6 +364,31 @@ class ZensusadminController extends PluginController
         if (Request::submitted('generate_token')) {
             UserConfig::get($GLOBALS['user']->id)->store('UNIZENSUSPLUGIN_AUTH_TOKEN', md5(uniqid('ZensusToken',1)));
             PageLayout::postSuccess(_("Ein neues Token wurde erzeugt."));
+        }
+    }
+
+    public function add_course_action()
+    {
+        if (!$this->plugin->user_is_eval_admin) {
+            throw new AccessDeniedException();
+        }
+        $this->semester_number = SemesterData::GetSemesterIndexById($GLOBALS['user']->cfg->MY_COURSES_SELECTED_CYCLE);
+        if (Request::submitted('add_course')) {
+            $institut_id = null;
+            CSRFProtection::verifyUnsafeRequest();
+            $course = Course::find(Request::option('search_course'));
+            $datafield_id = UniZensusPlugin::$datafield_id_markiert;
+            if ($course) {
+                $course
+                    ->datafields
+                    ->findOneBy('datafield_id', $datafield_id)
+                    ->content = '1';
+                if ($course->store()) {
+                    PageLayout::postSuccess(sprintf(_('Veranstaltung "%s" wurde zur Auswahl hinzugefügt.'), htmlReady($course->getFullname())));
+                }
+                $institut_id = $course->institut_id;
+            }
+            return $this->redirect($this->url_for('/selection', ['institut_id' => $institut_id]));
         }
     }
 

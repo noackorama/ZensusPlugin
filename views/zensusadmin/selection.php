@@ -1,5 +1,14 @@
 <?php
-
+if ($plugin->user_is_eval_admin) {
+    $widget = new ActionsWidget();
+    $widget->addLink(
+        _('Veranstaltung hinzufügen'),
+        $controller->url_for('/add_course'),
+        Icon::create('add'),
+        ['data-dialog' => 1]
+    );
+    Sidebar::Get()->addWidget($widget);
+}
 echo $this->render_partial('zensusadmin/_widgets.php');
 ?>
 <form action="<?=$controller->link_for()?>" method="post">
