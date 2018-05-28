@@ -431,7 +431,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     </a></td>
                     <td>
                     <a title=\"%s\" href=\"%s\">
-                    %s%s%s
+                    %s%s
                     </a>
                     <a data-dialog href=\"" . URLHelper::getScriptLink('dispatch.php/course/details/index/') . "%s\">
                      ". Assets::img('icons/20/grey/info-circle.png', tooltip2(_("Veranstaltungsdetails"))) ."
@@ -453,8 +453,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     htmlready($semdata['VeranstaltungsNummer']),
                     htmlready($dates),
                     UrlHelper::getLink($semlink.$seminar_id),
-                    htmlready(substr($semdata['Name'], 0, 60)),
-                    (strlen($semdata['Name'])>60) ? "..." : "",
+                    htmlready($semdata['Name']),
                     !$semdata['visible'] ? ' ' . _("(versteckt)") : '',
                         $seminar_id,
                     htmlReady($semdata['dozenten']),
