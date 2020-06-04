@@ -165,11 +165,11 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
         }
         if($form->isClicked('set_plugin_status')){
             if(is_array($_REQUEST['sem_choosen'])){
-                $set_to_status = $form->getFormFieldValue('plugin_status') ? 'on' : 'off';
+                $set_to_status = $form->getFormFieldValue('plugin_status') ? '1' : '0';
                 $db = new DB_Seminar();
                 foreach(array_keys($_REQUEST['sem_choosen']) as $seminar_id){
-                    $db->queryf("REPLACE INTO plugins_activated (pluginid,poiid,state) VALUES ('%s','%s','%s')",
-                        $this->zensuspluginid, 'sem' . $seminar_id, $set_to_status);
+                    $db->queryf("REPLACE INTO plugins_activated (pluginid, range_type, range_id, state) VALUES ('%s','sem','%s','%s')",
+                        $this->zensuspluginid, $seminar_id, $set_to_status);
                 }
                 $form->doFormReset();
             }
@@ -376,7 +376,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                 echo "</tr>";
             }
             foreach($data as $seminar_id => $semdata) {
-                if($semdata['activated_by_sem'] == 'on' || ($semdata['activated_by_sem'] != 'off' && $semdata['activated_by_default'] == 'on')){
+                if($semdata['activated_by_sem'] == '1' || ($semdata['activated_by_sem'] != '0' && $semdata['activated_by_default'] == '1')){
                     $plugin = PluginManager::getInstance()->getPluginById($this->zensuspluginid);
                     $plugin->setId($seminar_id);
                     $plugin->getCourseStatus();
@@ -566,12 +566,12 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                     $query = "SELECT Name,Seminar_id as seminar_id, VeranstaltungsNummer, visible FROM seminare WHERE 1 $seminare_condition ORDER BY Name";
                 elseif ($all == 'all')
                 $query = "SELECT seminare.Name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer, seminare.visible FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
-        INNER JOIN Institute ON seminar_inst.institut_id = Institute.Institut_id WHERE Institute.fakultaets_id  = '{$institut_id}' $seminare_condition
-        GROUP BY seminare.Seminar_id ORDER BY Name";
+                        INNER JOIN Institute ON seminar_inst.institut_id = Institute.Institut_id WHERE Institute.fakultaets_id  = '{$institut_id}' $seminare_condition
+                        GROUP BY seminare.Seminar_id ORDER BY Name";
                 else
                     $query = "SELECT seminare.Name,seminare.Seminar_id as seminar_id, seminare.VeranstaltungsNummer, seminare.visible FROM seminare LEFT JOIN seminar_inst USING (Institut_id)
-        WHERE seminar_inst.institut_id = '{$institut_id}' $seminare_condition
-        GROUP BY seminare.Seminar_id ORDER BY Name";
+                                WHERE seminar_inst.institut_id = '{$institut_id}' $seminare_condition
+                                GROUP BY seminare.Seminar_id ORDER BY Name";
                 $db->query($query);
                 while($db->next_record()){
                     $seminar_id = $db->f("seminar_id");
@@ -597,17 +597,18 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
                         if($db2->f('datafield_id') == $datafield2) $ret[$seminar_id]['end_evaluation'] = UniZensusPlugin::SQLDateToTimestamp($db2->f('content'));
                     }
                     $query2 = "SELECT state, 'sem' AS activated_by
-            FROM plugins_activated pat
-            WHERE pat.pluginid = '$pluginid'
-            AND pat.poiid = 'sem$seminar_id'
-            UNION SELECT 'on', 'default'
-            FROM seminar_inst s
-            JOIN Institute i ON i.Institut_id = s.institut_id
-            JOIN plugins_default_activations pa ON i.fakultaets_id = pa.institutid
-            OR i.Institut_id = pa.institutid
-            JOIN plugins p ON pa.pluginid = p.pluginid
-            WHERE s.seminar_id = '$seminar_id'
-            AND p.pluginid = '$pluginid'";
+                                FROM plugins_activated pat
+                                WHERE pat.pluginid = '$pluginid'
+                                AND pat.range_type = 'sem'
+                                AND pat.range_id = '$seminar_id'
+                                UNION SELECT '1', 'default'
+                                FROM seminar_inst s
+                                JOIN Institute i ON i.Institut_id = s.institut_id
+                                JOIN plugins_default_activations pa ON i.fakultaets_id = pa.institutid
+                                OR i.Institut_id = pa.institutid
+                                JOIN plugins p ON pa.pluginid = p.pluginid
+                                WHERE s.seminar_id = '$seminar_id'
+                                AND p.pluginid = '$pluginid'";
                     $db2->query($query2);
                     while($db2->next_record()){
                         $ret[$seminar_id]['activated_by_' . $db2->f('activated_by')] = $db2->f('state');
@@ -657,7 +658,7 @@ class UniZensusAdminPlugin extends StudipPlugin implements SystemPlugin {
 
                 $authcode = Request::option('authcode');
                 if ($authcode) {
-                    $auth_uid = DbManager::get()->query("SELECT user_id FROM user_config WHERE field='UNIZENSUSPLUGIN_AUTH_TOKEN' AND value='$authcode'")->fetchColumn();
+                    $auth_uid = DbManager::get()->query("SELECT range_id FROM config_values WHERE field='UNIZENSUSPLUGIN_AUTH_TOKEN' AND value='$authcode'")->fetchColumn();
                     if (!$auth_uid) $export_error = 'wrong authcode';
                 } else {
                     $export_error = 'missing authcode';
