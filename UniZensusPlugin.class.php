@@ -442,7 +442,10 @@ class UniZensusPlugin extends StudipPlugin implements StandardPlugin
             ');
 
         if ($GLOBALS['perm']->have_studip_perm('dozent', $this->getId())) {
-            echo chr(10) . '<div><a href="#" title="Ihre Studierenden können den QR-Code mit dem Smartphone vom Beamer abscannen und gleich in der Veranstaltung abstimmen." onClick="STUDIP.QRCourse.showQR(); return false;">' . Assets::img('icons/blue/code-qr.svg', array('width' => '64')). '&nbsp;QR-Code anzeigen</a></div>';
+            echo chr(10)
+               . '<div><a href="#" title="Ihre Studierenden können den QR-Code mit dem Smartphone vom Beamer abscannen und gleich in der Veranstaltung abstimmen." onClick="STUDIP.QRCourse.showQR(); return false;">'
+               . Icon::create('code-qr', 'clickable')->asImg('64px')
+                     . '&nbsp;QR-Code anzeigen</a></div>';
         }
         echo chr(10) . '<h3>' . _("Status der Lehrevaluation:") . '</h3>';
         if (isset($this->course_status['time_frame'])){
